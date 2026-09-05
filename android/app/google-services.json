@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "581505991376",
+    "project_id": "brandnextdoor",
+    "storage_bucket": "brandnextdoor.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:581505991376:android:6b9ac19c4c9c3fa45714d5",
+        "android_client_info": {
+          "package_name": "com.example.brand_next_door"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAXZbpvQeCDmhewRsOYTzBDrRet7WSDguc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

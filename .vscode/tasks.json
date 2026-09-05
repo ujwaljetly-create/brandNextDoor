@@ -1,0 +1,33 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "git-push-brand-next-door",
+			"type": "shell",
+			"command": "git init && git checkout -b main && git config user.name \"ujwaljetly-create\" && git config user.email \"ujwaljetly-create@users.noreply.github.com\" && git remote remove origin 2>$null || true && git remote add origin https://github.com/ujwaljetly-create/brandNextDoor.git && git add . && git commit -m \"Initial commit\" && git push -u origin main",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "git-push-brand-next-door",
+			"type": "shell",
+			"command": "git init && git checkout -b main && git config user.name \"ujwaljetly-create\" && git config user.email \"ujwaljetly-create@users.noreply.github.com\" && git remote remove origin 2>nul && git remote add origin https://github.com/ujwaljetly-create/brandNextDoor.git && git add . && git commit -m \"Initial commit\" && git push -u origin main",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "git-push-brand-next-door-2",
+			"type": "shell",
+			"command": "cmd /C \"git init && git checkout -b main && git config user.name \"ujwaljetly-create\" && git config user.email \"ujwaljetly-create@users.noreply.github.com\" && git remote remove origin 2>nul && git remote add origin https://github.com/ujwaljetly-create/brandNextDoor.git && git add . && git commit -m \"Initial commit\" && git push -u origin main\"",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "git-push-brand-next-door-3",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"git init; git checkout -b main; git config user.name 'ujwaljetly-create'; git config user.email 'ujwaljetly-create@users.noreply.github.com'; git remote remove origin 2>$null; git remote add origin 'https://github.com/ujwaljetly-create/brandNextDoor.git'; git add .; git commit -m 'Initial commit'; git push -u origin main\"",
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}
