@@ -3,8 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../models/order_model.dart';
 
 class OrderService {
-  final FirebaseFirestore firestore =
-      FirebaseFirestore.instance;
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   Future<void> createOrder(
     OrderModel order,
@@ -12,13 +11,10 @@ class OrderService {
     await firestore
         .collection('orders')
         .doc(order.orderId)
-        .set(
-          order.toMap(),
-        );
+        .set(order.toMap());
   }
 
-  Stream<List<OrderModel>>
-      getBuyerOrders(
+  Stream<List<OrderModel>> getBuyerOrders(
     String buyerId,
   ) {
     return firestore
@@ -28,22 +24,22 @@ class OrderService {
           isEqualTo: buyerId,
         )
         .snapshots()
-        .map(
-      (snapshot) {
-        return snapshot.docs
-            .map(
-              (doc) =>
-                  OrderModel.fromMap(
-                doc.data(),
-              ),
-            )
-            .toList();
-      },
-    );
+        .map((snapshot) {
+      final orders = snapshot.docs
+          .map(
+            (doc) => OrderModel.fromMap(doc.data()),
+          )
+          .toList();
+
+      orders.sort(
+        (a, b) => b.createdAt.compareTo(a.createdAt),
+      );
+
+      return orders;
+    });
   }
 
-  Stream<List<OrderModel>>
-      getSellerOrders(
+  Stream<List<OrderModel>> getSellerOrders(
     String sellerId,
   ) {
     return firestore
@@ -53,28 +49,26 @@ class OrderService {
           isEqualTo: sellerId,
         )
         .snapshots()
-        .map(
-      (snapshot) {
-        return snapshot.docs
-            .map(
-              (doc) =>
-                  OrderModel.fromMap(
-                doc.data(),
-              ),
-            )
-            .toList();
-      },
-    );
+        .map((snapshot) {
+      final orders = snapshot.docs
+          .map(
+            (doc) => OrderModel.fromMap(doc.data()),
+          )
+          .toList();
+
+      orders.sort(
+        (a, b) => b.createdAt.compareTo(a.createdAt),
+      );
+
+      return orders;
+    });
   }
 
   Future<void> updateStatus(
     String orderId,
     String status,
   ) async {
-    await firestore
-        .collection('orders')
-        .doc(orderId)
-        .update({
+    await firestore.collection('orders').doc(orderId).update({
       'status': status,
     });
   }
