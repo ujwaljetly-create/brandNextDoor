@@ -5,6 +5,8 @@ import 'package:uuid/uuid.dart';
 
 import '../../../models/listing_model.dart';
 import '../../../models/order_model.dart';
+import '../../../services/user_service.dart';
+import '../../brand/services/brand_service.dart';
 import '../services/order_service.dart';
 
 class PlaceOrderScreen extends StatefulWidget {
@@ -45,116 +47,122 @@ class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
         title: const Text('Place Order'),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: ListView(
           padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.listing.title,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '\$${widget.listing.price.toStringAsFixed(2)} each',
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.white70,
-                ),
-              ),
-              const SizedBox(height: 28),
-              const Text(
-                'Quantity',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  IconButton.filledTonal(
-                    onPressed: quantity > 1
-                        ? () {
-                            setState(() {
-                              quantity--;
-                            });
-                          }
-                        : null,
-                    icon: const Icon(Icons.remove),
+          children: [
+            if (widget.listing.images.isNotEmpty)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Image.network(
+                  widget.listing.images.first,
+                  height: 210,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    height: 210,
+                    color: Theme.of(context).cardColor,
+                    child: const Icon(Icons.broken_image_outlined, size: 56),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Text(
-                      quantity.toString(),
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                ),
+              ),
+            const SizedBox(height: 20),
+            Text(
+              widget.listing.title,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '\$${widget.listing.price.toStringAsFixed(2)} each',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 28),
+            const Text(
+              'Quantity',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                IconButton.filledTonal(
+                  onPressed: quantity > 1
+                      ? () {
+                          setState(() {
+                            quantity--;
+                          });
+                        }
+                      : null,
+                  icon: const Icon(Icons.remove),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    quantity.toString(),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  IconButton.filledTonal(
-                    onPressed: () {
-                      setState(() {
-                        quantity++;
-                      });
-                    },
-                    icon: const Icon(Icons.add),
-                  ),
-                ],
+                ),
+                IconButton.filledTonal(
+                  onPressed: () {
+                    setState(() {
+                      quantity++;
+                    });
+                  },
+                  icon: const Icon(Icons.add),
+                ),
+              ],
+            ),
+            const SizedBox(height: 28),
+            const Text(
+              'Fulfillment',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(height: 28),
+            ),
+            const SizedBox(height: 12),
+            if (!widget.listing.deliveryAvailable &&
+                !widget.listing.pickupAvailable)
               const Text(
-                'Fulfillment',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
+                'This listing does not currently have a delivery or pickup option.',
               ),
-              const SizedBox(height: 12),
-              if (!widget.listing.deliveryAvailable &&
-                  !widget.listing.pickupAvailable)
-                const Text(
-                  'This listing does not currently have a delivery or pickup option.',
-                  style: TextStyle(color: Colors.redAccent),
-                ),
-              if (widget.listing.deliveryAvailable)
-                RadioListTile<String>(
-                  contentPadding: EdgeInsets.zero,
-                  value: 'delivery',
-                  groupValue: fulfillmentMethod,
-                  title: const Text('Delivery'),
-                  secondary: const Icon(Icons.local_shipping_outlined),
-                  onChanged: (value) {
-                    setState(() {
-                      fulfillmentMethod = value;
-                    });
-                  },
-                ),
-              if (widget.listing.pickupAvailable)
-                RadioListTile<String>(
-                  contentPadding: EdgeInsets.zero,
-                  value: 'pickup',
-                  groupValue: fulfillmentMethod,
-                  title: const Text('Pickup'),
-                  secondary: const Icon(Icons.storefront_outlined),
-                  onChanged: (value) {
-                    setState(() {
-                      fulfillmentMethod = value;
-                    });
-                  },
-                ),
-              const SizedBox(height: 28),
-              Container(
-                width: double.infinity,
+            if (widget.listing.deliveryAvailable)
+              RadioListTile<String>(
+                contentPadding: EdgeInsets.zero,
+                value: 'delivery',
+                groupValue: fulfillmentMethod,
+                title: const Text('Delivery'),
+                secondary: const Icon(Icons.local_shipping_outlined),
+                onChanged: (value) {
+                  setState(() {
+                    fulfillmentMethod = value;
+                  });
+                },
+              ),
+            if (widget.listing.pickupAvailable)
+              RadioListTile<String>(
+                contentPadding: EdgeInsets.zero,
+                value: 'pickup',
+                groupValue: fulfillmentMethod,
+                title: const Text('Pickup'),
+                secondary: const Icon(Icons.storefront_outlined),
+                onChanged: (value) {
+                  setState(() {
+                    fulfillmentMethod = value;
+                  });
+                },
+              ),
+            const SizedBox(height: 28),
+            Card(
+              child: Padding(
                 padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(18),
-                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -167,29 +175,29 @@ class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green,
+                        color: Colors.greenAccent,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 28),
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: ElevatedButton(
-                  onPressed: canOrder ? createOrder : null,
-                  child: isSubmitting
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Confirm Order'),
-                ),
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: ElevatedButton(
+                onPressed: canOrder ? createOrder : null,
+                child: isSubmitting
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Confirm Order'),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -207,28 +215,39 @@ class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
       return;
     }
 
-    if (fulfillmentMethod == null) {
-      return;
-    }
+    if (fulfillmentMethod == null) return;
 
     setState(() {
       isSubmitting = true;
     });
 
     try {
+      final appUser = await UserService().getUser(user.uid);
+      final brand = widget.listing.brandId.isNotEmpty
+          ? await BrandService().getBrand(widget.listing.brandId)
+          : null;
+
+      final now = Timestamp.now();
       final order = OrderModel(
         orderId: const Uuid().v4(),
         buyerId: user.uid,
+        buyerName: appUser?.name ?? user.displayName ?? 'Buyer',
         sellerId: widget.listing.sellerId,
+        sellerName: (brand?['brandName'] ?? 'Seller').toString(),
+        sellerLogoUrl: (brand?['logoUrl'] ?? '').toString(),
         brandId: widget.listing.brandId,
         listingId: widget.listing.listingId,
         productTitle: widget.listing.title,
+        productImageUrl:
+            widget.listing.images.isNotEmpty ? widget.listing.images.first : '',
         unitPrice: widget.listing.price,
         amount: widget.listing.price * quantity,
         quantity: quantity,
         fulfillmentMethod: fulfillmentMethod!,
         status: 'pending',
-        createdAt: Timestamp.now(),
+        rejectionReason: '',
+        createdAt: now,
+        updatedAt: now,
       );
 
       await OrderService().createOrder(order);
@@ -236,7 +255,6 @@ class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
       if (!mounted) return;
 
       Navigator.pop(context);
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Order created successfully.'),
