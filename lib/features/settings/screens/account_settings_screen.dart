@@ -26,11 +26,8 @@ class _AccountSettingsScreenState
   bool _isSaving = false;
   UserModel? _appUser;
 
-  User? get _firebaseUser =>
-      FirebaseAuth.instance.currentUser;
-
-  bool get _isSeller =>
-      widget.role.toLowerCase() == 'seller';
+  User? get _firebaseUser => FirebaseAuth.instance.currentUser;
+  bool get _isSeller => widget.role.toLowerCase() == 'seller';
 
   @override
   void initState() {
@@ -48,21 +45,15 @@ class _AccountSettingsScreenState
     final user = _firebaseUser;
 
     if (user == null) {
-      if (mounted) {
-        context.go('/welcome');
-      }
+      if (mounted) context.go('/welcome');
       return;
     }
 
     try {
-      final appUser =
-          await UserService().getUser(user.uid);
-
+      final appUser = await UserService().getUser(user.uid);
       if (!mounted) return;
-
       _appUser = appUser;
-      _nameController.text =
-          appUser?.name ?? user.displayName ?? '';
+      _nameController.text = appUser?.name ?? user.displayName ?? '';
     } finally {
       if (mounted) {
         setState(() {
@@ -86,17 +77,13 @@ class _AccountSettingsScreenState
     });
 
     try {
-      await UserService().updateName(
-        uid: user.uid,
-        name: name,
-      );
+      await UserService().updateName(uid: user.uid, name: name);
       await user.updateDisplayName(name);
 
       if (!mounted) return;
-
       _showMessage('Name updated successfully.');
       await _loadUser();
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       _showMessage('Unable to update your name.');
     } finally {
@@ -112,21 +99,14 @@ class _AccountSettingsScreenState
     final email = _firebaseUser?.email;
 
     if (email == null || email.isEmpty) {
-      _showMessage(
-        'No email address is associated with this account.',
-      );
+      _showMessage('No email address is associated with this account.');
       return;
     }
 
     try {
-      await FirebaseAuth.instance
-          .sendPasswordResetEmail(email: email);
-
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       if (!mounted) return;
-
-      _showMessage(
-        'Password reset email sent to $email.',
-      );
+      _showMessage('Password reset email sent to $email.');
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       _showMessage(
@@ -146,15 +126,11 @@ class _AccountSettingsScreenState
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(false);
-              },
+              onPressed: () => Navigator.of(dialogContext).pop(false),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(true);
-              },
+              onPressed: () => Navigator.of(dialogContext).pop(true),
               child: const Text('Sign Out'),
             ),
           ],
@@ -165,17 +141,13 @@ class _AccountSettingsScreenState
     if (confirmed != true) return;
 
     await FirebaseAuth.instance.signOut();
-
     if (!mounted) return;
-
     context.go('/welcome');
   }
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
+      SnackBar(content: Text(message)),
     );
   }
 
@@ -183,9 +155,7 @@ class _AccountSettingsScreenState
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -195,19 +165,14 @@ class _AccountSettingsScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          _isSeller ? 'Seller Settings' : 'Buyer Settings',
-        ),
+        title: Text(_isSeller ? 'Seller Settings' : 'Buyer Settings'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           const Text(
             'Account',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Card(
@@ -246,14 +211,10 @@ class _AccountSettingsScreenState
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.save_outlined),
-                      label: Text(
-                        _isSaving ? 'Saving...' : 'Save Changes',
-                      ),
+                      label: Text(_isSaving ? 'Saving...' : 'Save Changes'),
                     ),
                   ),
                 ],
@@ -263,34 +224,24 @@ class _AccountSettingsScreenState
           const SizedBox(height: 24),
           const Text(
             'Security',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.lock_reset),
-                  title: const Text('Reset Password'),
-                  subtitle: const Text(
-                    'Send a password reset link to your email.',
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: _sendPasswordReset,
-                ),
-              ],
+            child: ListTile(
+              leading: const Icon(Icons.lock_reset),
+              title: const Text('Reset Password'),
+              subtitle: const Text(
+                'Send a password reset link to your email.',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _sendPasswordReset,
             ),
           ),
           const SizedBox(height: 24),
           Text(
             _isSeller ? 'Seller Tools' : 'Buyer Tools',
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           Card(
@@ -301,45 +252,35 @@ class _AccountSettingsScreenState
                     leading: const Icon(Icons.storefront_outlined),
                     title: const Text('My Brand'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      context.push('/seller-brand');
-                    },
+                    onTap: () => context.push('/seller-brand'),
                   ),
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.inventory_2_outlined),
                     title: const Text('My Listings'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      context.push('/my-listings');
-                    },
+                    onTap: () => context.push('/my-listings'),
                   ),
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.receipt_long_outlined),
-                    title: const Text('Seller Orders'),
+                    title: const Text('Received Orders'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      context.push('/seller-orders');
-                    },
+                    onTap: () => context.push('/seller-orders'),
                   ),
                 ] else ...[
                   ListTile(
                     leading: const Icon(Icons.shopping_bag_outlined),
                     title: const Text('My Orders'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      context.push('/buyer-orders');
-                    },
+                    onTap: () => context.push('/buyer-orders'),
                   ),
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.store_mall_directory_outlined),
                     title: const Text('Marketplace'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      context.push('/marketplace');
-                    },
+                    onTap: () => context.push('/marketplace'),
                   ),
                 ],
                 const Divider(height: 1),
@@ -347,9 +288,7 @@ class _AccountSettingsScreenState
                   leading: const Icon(Icons.chat_bubble_outline),
                   title: const Text('Messages'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    context.push('/messages');
-                  },
+                  onTap: () => context.push('/messages'),
                 ),
               ],
             ),
