@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../models/order_model.dart';
 import '../services/order_service.dart';
@@ -100,6 +101,17 @@ class BuyerOrdersScreen extends StatelessWidget {
               return OrderCard(
                 order: order,
                 showSellerInfo: true,
+                onSellerTap: order.sellerId.isEmpty
+                    ? null
+                    : () {
+                        context.push(
+                          '/seller-storefront',
+                          extra: {
+                            'sellerId': order.sellerId,
+                            'brandId': order.brandId,
+                          },
+                        );
+                      },
                 action: order.canBuyerCancel
                     ? SizedBox(
                         width: double.infinity,
