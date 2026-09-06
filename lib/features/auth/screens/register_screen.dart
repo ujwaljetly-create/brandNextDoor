@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../features/auth/services/auth_service.dart';
+
 class RegisterScreen extends StatefulWidget {
   final String role;
 
@@ -10,134 +11,133 @@ class RegisterScreen extends StatefulWidget {
     super.key,
     required this.role,
   });
+
   @override
-  State<RegisterScreen> createState() =>
-      _RegisterScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-Future<void> registerUser() async {
-  try {
-    final credential =
-        await AuthService().register(
-      email:
-          emailController.text.trim(),
-      password:
-          passwordController.text.trim(),
-    );
+  bool isLoading = false;
 
-    await credential.user!
-        .updateDisplayName(
-      nameController.text.trim(),
-    );
+  Future<void> registerUser() async {
+    if (isLoading) return;
 
-    await credential.user!
-        .sendEmailVerification();
-
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(credential.user!.uid)
-        .set({
-      'uid': credential.user!.uid,
-      'name':
-          nameController.text.trim(),
-      'email':
-          emailController.text.trim(),
-      'roles': [widget.role],
-      'createdAt':
-          Timestamp.now(),
+    setState(() {
+      isLoading = true;
     });
 
-    if (!mounted) return;
+    try {
+      final credential = await AuthService().register(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
 
-    context.go('/verify-email');
-  } catch (e) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      SnackBar(
-        content: Text(
-          e.toString(),
-        ),
-      ),
-    );
+      await credential.user!.updateDisplayName(
+        nameController.text.trim(),
+      );
+
+      await credential.user!.sendEmailVerification();
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(credential.user!.uid)
+          .set({
+        'uid': credential.user!.uid,
+        'name': nameController.text.trim(),
+        'email': emailController.text.trim(),
+        'roles': [widget.role],
+        'createdAt': Timestamp.now(),
+      });
+
+      if (!mounted) return;
+      context.go('/verify-email');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
   }
-}
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final roleLabel = widget.role == 'seller' ? 'Seller' : 'Buyer';
+
     return Scaffold(
-      appBar: AppBar(),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            TextField(
-              controller: nameController,
-              style: const TextStyle(
-    color: Colors.white,
-  ),
-              decoration: InputDecoration(
-                hintText: 'Full Name',
-                hintStyle: const TextStyle(
-      color: Colors.white54,
-    ),border: OutlineInputBorder(
-      borderRadius:
-          BorderRadius.circular(12),
-    ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            TextField(
-  controller: emailController,
-  style: const TextStyle(
-    color: Colors.white,
-  ),
-  decoration: InputDecoration(
-    hintText: 'Email',
-    hintStyle: const TextStyle(
-      color: Colors.white54,
-    ),
-    border: OutlineInputBorder(
-      borderRadius:
-          BorderRadius.circular(12),
-    ),
-  ),
-),
-
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: passwordController,
-              style: const TextStyle(
-    color: Colors.white,
-  ),
-              obscureText: true,
-              decoration: InputDecoration(
-                hintText: 'Password',
-                 hintStyle: const TextStyle(
-      color: Colors.white54,
-    ),                border: OutlineInputBorder(
-                  borderRadius:
-                      BorderRadius.circular(12),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: registerUser,
-                child: const Text("Create Account"),
-              ),
-            ),
-          ],
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/account-type');
+            }
+          },
         ),
+        title: Text('Create $roleLabel Account'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          TextField(
+            controller: nameController,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: 'Full Name',
+              prefixIcon: Icon(Icons.person_outline),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: emailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              prefixIcon: Icon(Icons.email_outlined),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: passwordController,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'Password',
+              prefixIcon: Icon(Icons.lock_outline),
+            ),
+          ),
+          const SizedBox(height: 30),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: isLoading ? null : registerUser,
+              child: isLoading
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Create Account'),
+            ),
+          ),
+        ],
       ),
     );
   }
