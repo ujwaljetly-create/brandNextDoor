@@ -162,43 +162,49 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                         .where((order) => order.status == 'pending')
                         .length;
 
+                    final statCards = <Widget>[
+                      DashboardStatCard(
+                        title: pending > 0
+                            ? 'Orders ($pending new)'
+                            : 'Orders',
+                        value: orders.length.toString(),
+                        icon: Icons.shopping_bag,
+                        onTap: () {
+                          context.push('/seller-orders');
+                        },
+                      ),
+                      DashboardStatCard(
+                        title: 'Sales',
+                        value: '\$${deliveredSales.toStringAsFixed(0)}',
+                        icon: Icons.attach_money,
+                      ),
+                      const DashboardStatCard(
+                        title: 'Listings',
+                        value: '—',
+                        icon: Icons.inventory,
+                      ),
+                      const DashboardStatCard(
+                        title: 'Messages',
+                        value: '—',
+                        icon: Icons.chat_bubble,
+                      ),
+                    ];
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        GridView.count(
+                        GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 1.3,
-                          children: [
-                            DashboardStatCard(
-                              title: pending > 0
-                                  ? 'Orders ($pending new)'
-                                  : 'Orders',
-                              value: orders.length.toString(),
-                              icon: Icons.shopping_bag,
-                              onTap: () {
-                                context.push('/seller-orders');
-                              },
-                            ),
-                            DashboardStatCard(
-                              title: 'Sales',
-                              value: '\$${deliveredSales.toStringAsFixed(0)}',
-                              icon: Icons.attach_money,
-                            ),
-                            const DashboardStatCard(
-                              title: 'Listings',
-                              value: '—',
-                              icon: Icons.inventory,
-                            ),
-                            const DashboardStatCard(
-                              title: 'Messages',
-                              value: '—',
-                              icon: Icons.chat_bubble,
-                            ),
-                          ],
+                          itemCount: statCards.length,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            mainAxisExtent: 145,
+                          ),
+                          itemBuilder: (context, index) => statCards[index],
                         ),
                         const SizedBox(height: 30),
                         Row(
