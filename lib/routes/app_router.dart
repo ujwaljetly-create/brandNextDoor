@@ -15,6 +15,7 @@ import '../features/brand/screens/seller_brand_screen.dart';
 import '../features/buyer/screens/buyer_home_screen.dart';
 import '../features/buyer/screens/buyer_marketplace_screen.dart';
 import '../features/buyer/screens/listing_details_screen.dart';
+import '../features/buyer/screens/seller_storefront_screen.dart';
 import '../features/chat/screens/conversations_screen.dart';
 import '../features/listings/models/generated_listing_model.dart';
 import '../features/listings/screens/ai_listing_builder_screen.dart';
@@ -54,6 +55,16 @@ class AppRouter {
         builder: (context, state) {
           final listing = state.extra as ListingModel;
           return ListingDetailsScreen(listing: listing);
+        },
+      ),
+      GoRoute(
+        path: '/seller-storefront',
+        builder: (context, state) {
+          final data = state.extra as Map<String, dynamic>;
+          return SellerStorefrontScreen(
+            sellerId: (data['sellerId'] ?? '').toString(),
+            brandId: (data['brandId'] ?? '').toString(),
+          );
         },
       ),
       GoRoute(
