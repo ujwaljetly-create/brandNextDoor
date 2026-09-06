@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../models/order_model.dart';
+import '../../brand/services/brand_service.dart';
 import '../services/order_service.dart';
 import '../widgets/order_card.dart';
 
@@ -47,6 +48,52 @@ class BuyerOrdersScreen extends StatelessWidget {
         SnackBar(content: Text(e.toString())),
       );
     }
+  }
+
+  Widget _buildOrderCard(BuildContext context, OrderModel order) {
+    final card = (Map<String, dynamic>? brand) {
+      final brandName = (brand?['brandName'] ?? order.sellerName).toString();
+      final logoUrl = (brand?['logoUrl'] ?? order.sellerLogoUrl).toString();
+
+      return OrderCard(
+        order: order,
+        showSellerInfo: true,
+        sellerNameOverride: brandName,
+        sellerLogoUrlOverride: logoUrl,
+        onSellerTap: order.sellerId.isEmpty
+            ? null
+            : () {
+                context.push(
+                  '/seller-storefront',
+                  extra: {
+                    'sellerId': order.sellerId,
+                    'brandId': order.brandId,
+                  },
+                );
+              },
+        action: order.canBuyerCancel
+            ? SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _cancelOrder(context, order),
+                  icon: const Icon(Icons.cancel_outlined),
+                  label: const Text('Cancel Order'),
+                ),
+              )
+            : null,
+      );
+    };
+
+    if (order.brandId.isEmpty) {
+      return card(null);
+    }
+
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: BrandService().getBrand(order.brandId),
+      builder: (context, snapshot) {
+        return card(snapshot.data);
+      },
+    );
   }
 
   @override
@@ -96,33 +143,7 @@ class BuyerOrdersScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             itemCount: orders.length,
             itemBuilder: (context, index) {
-              final order = orders[index];
-
-              return OrderCard(
-                order: order,
-                showSellerInfo: true,
-                onSellerTap: order.sellerId.isEmpty
-                    ? null
-                    : () {
-                        context.push(
-                          '/seller-storefront',
-                          extra: {
-                            'sellerId': order.sellerId,
-                            'brandId': order.brandId,
-                          },
-                        );
-                      },
-                action: order.canBuyerCancel
-                    ? SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () => _cancelOrder(context, order),
-                          icon: const Icon(Icons.cancel_outlined),
-                          label: const Text('Cancel Order'),
-                        ),
-                      )
-                    : null,
-              );
+              return _buildOrderCard(context, orders[index]);
             },
           );
         },
