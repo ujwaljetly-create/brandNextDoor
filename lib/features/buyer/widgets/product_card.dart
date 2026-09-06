@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../models/listing_model.dart';
-import '../../listings/screens/product_details_screen.dart';
 
-class ProductCard
-    extends StatelessWidget {
+class ProductCard extends StatelessWidget {
   final ListingModel listing;
 
   const ProductCard({
@@ -13,66 +12,56 @@ class ProductCard
   });
 
   @override
-  Widget build(
-      BuildContext context) {
+  Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => ProductDetailsScreen(
-        listing: listing,
-      ),
-    ),
-  );
-},
+        context.push(
+          '/listing-details',
+          extra: listing,
+        );
+      },
       child: Container(
         width: 180,
         decoration: BoxDecoration(
-          borderRadius:
-              BorderRadius.circular(20),
-          color: const Color(
-            0xff1A1A1A,
-          ),
+          borderRadius: BorderRadius.circular(20),
+          color: const Color(0xff1A1A1A),
         ),
         child: Column(
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius:
-                    const BorderRadius
-                        .vertical(
-                  top: Radius.circular(
-                    20,
-                  ),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
                 ),
-                child: Image.network(
-                  listing.images.first,
-                  fit: BoxFit.cover,
-                  width:
-                      double.infinity,
-                ),
+                child: listing.images.isNotEmpty
+                    ? Image.network(
+                        listing.images.first,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (_, __, ___) {
+                          return const Center(
+                            child: Icon(Icons.broken_image_outlined),
+                          );
+                        },
+                      )
+                    : const Center(
+                        child: Icon(Icons.image_outlined),
+                      ),
               ),
             ),
             Padding(
-              padding:
-                  const EdgeInsets.all(
-                12,
-              ),
+              padding: const EdgeInsets.all(12),
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     listing.title,
                     maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(
-                    height: 6,
-                  ),
+                  const SizedBox(height: 6),
                   Text(
-                    '\$${listing.price}',
+                    '\$${listing.price.toStringAsFixed(2)}',
                   ),
                 ],
               ),
