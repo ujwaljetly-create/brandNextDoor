@@ -23,7 +23,7 @@ class WelcomeScreen extends StatelessWidget {
               const Text(
                 'Brand Next Door',
                 style: TextStyle(
-                  color: AppColors.white,
+                  color: AppColors.text,
                   fontSize: 34,
                   fontWeight: FontWeight.bold,
                 ),
