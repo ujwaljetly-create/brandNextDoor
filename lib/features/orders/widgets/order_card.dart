@@ -8,6 +8,8 @@ class OrderCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onSellerTap;
   final Widget? action;
+  final String? sellerNameOverride;
+  final String? sellerLogoUrlOverride;
 
   const OrderCard({
     super.key,
@@ -16,10 +18,16 @@ class OrderCard extends StatelessWidget {
     this.onTap,
     this.onSellerTap,
     this.action,
+    this.sellerNameOverride,
+    this.sellerLogoUrlOverride,
   });
 
   @override
   Widget build(BuildContext context) {
+    final sellerName = (sellerNameOverride ?? order.sellerName).trim();
+    final sellerLogoUrl =
+        (sellerLogoUrlOverride ?? order.sellerLogoUrl).trim();
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: InkWell(
@@ -90,10 +98,10 @@ class OrderCard extends StatelessWidget {
                         CircleAvatar(
                           radius: 22,
                           backgroundColor: Colors.grey.shade200,
-                          backgroundImage: order.sellerLogoUrl.isNotEmpty
-                              ? NetworkImage(order.sellerLogoUrl)
+                          backgroundImage: sellerLogoUrl.isNotEmpty
+                              ? NetworkImage(sellerLogoUrl)
                               : null,
-                          child: order.sellerLogoUrl.isEmpty
+                          child: sellerLogoUrl.isEmpty
                               ? const Icon(Icons.storefront, size: 21)
                               : null,
                         ),
@@ -103,9 +111,7 @@ class OrderCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                order.sellerName.isNotEmpty
-                                    ? order.sellerName
-                                    : 'Seller',
+                                sellerName.isNotEmpty ? sellerName : 'Seller',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 15,
@@ -114,8 +120,13 @@ class OrderCard extends StatelessWidget {
                               if (onSellerTap != null)
                                 Text(
                                   'View seller and listings',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: Theme.of(context).colorScheme.primary,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
                                       ),
                                 ),
                             ],
