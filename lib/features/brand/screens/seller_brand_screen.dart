@@ -17,7 +17,6 @@ class SellerBrandScreen extends StatefulWidget {
 class _SellerBrandScreenState
     extends State<SellerBrandScreen> {
   bool isLoading = true;
-
   Map<String, dynamic>? brand;
 
   @override
@@ -29,8 +28,7 @@ class _SellerBrandScreenState
   Future<void> loadBrand() async {
     try {
       final result =
-          await BrandService()
-              .getSellerBrand();
+          await BrandService().getSellerBrand();
 
       if (!mounted) return;
 
@@ -47,14 +45,20 @@ class _SellerBrandScreenState
     }
   }
 
+  void _goBack() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/seller-dashboard');
+    }
+  }
+
   @override
-  Widget build(
-      BuildContext context) {
+  Widget build(BuildContext context) {
     if (isLoading) {
       return const Scaffold(
         body: Center(
-          child:
-              CircularProgressIndicator(),
+          child: CircularProgressIndicator(),
         ),
       );
     }
@@ -66,18 +70,12 @@ class _SellerBrandScreenState
             icon: const Icon(
               Icons.arrow_back_ios,
             ),
-            onPressed: () {
-              context.pop();
-            },
+            onPressed: _goBack,
           ),
-          title: const Text(
-            'My Brand',
-          ),
+          title: const Text('My Brand'),
         ),
         body: const Center(
-          child: Text(
-            'No Brand Found',
-          ),
+          child: Text('No Brand Found'),
         ),
       );
     }
@@ -88,42 +86,26 @@ class _SellerBrandScreenState
           icon: const Icon(
             Icons.arrow_back_ios,
           ),
-          onPressed: () {
-            context.pop();
-          },
+          onPressed: _goBack,
         ),
-        title: const Text(
-          'My Brand',
-        ),
+        title: const Text('My Brand'),
       ),
       body: SingleChildScrollView(
-        padding:
-            const EdgeInsets.all(
-          24,
-        ),
+        padding: const EdgeInsets.all(24),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            /// Logo
             if ((brand!['logoUrl'] ?? '')
                 .toString()
                 .isNotEmpty)
               Center(
                 child: Container(
-                  margin:
-                      const EdgeInsets.only(
+                  margin: const EdgeInsets.only(
                     bottom: 24,
                   ),
                   child: ClipRRect(
-                    borderRadius:
-                        BorderRadius
-                            .circular(
-                      24,
-                    ),
-                    child:
-                        Image.network(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.network(
                       brand!['logoUrl'],
                       height: 180,
                       fit: BoxFit.contain,
@@ -131,266 +113,143 @@ class _SellerBrandScreenState
                   ),
                 ),
               ),
-
-            /// Brand Name
             Text(
               brand!['brandName'] ?? '',
-              style:
-                  const TextStyle(
-                color:
-                    Colors.white,
+              style: const TextStyle(
+                color: Colors.white,
                 fontSize: 32,
-                fontWeight:
-                    FontWeight.bold,
+                fontWeight: FontWeight.bold,
               ),
             ),
-
-            const SizedBox(
-              height: 8,
-            ),
-
-            /// Tagline
+            const SizedBox(height: 8),
             Text(
               brand!['tagline'] ?? '',
-              style:
-                  const TextStyle(
-                color:
-                    Colors.white70,
+              style: const TextStyle(
+                color: Colors.white70,
                 fontSize: 18,
               ),
             ),
-
-            const SizedBox(
-              height: 24,
-            ),
-
-            /// Description
+            const SizedBox(height: 24),
             const Text(
               'Description',
               style: TextStyle(
-                color:
-                    Colors.white,
+                color: Colors.white,
                 fontSize: 22,
-                fontWeight:
-                    FontWeight.bold,
+                fontWeight: FontWeight.bold,
               ),
             ),
-
-            const SizedBox(
-              height: 10,
-            ),
-
+            const SizedBox(height: 10),
             Text(
               brand!['description'] ?? '',
-              style:
-                  const TextStyle(
-                color:
-                    Colors.white,
+              style: const TextStyle(
+                color: Colors.white,
               ),
             ),
-
-            const SizedBox(
-              height: 30,
-            ),
-
-            /// Brand Colors
+            const SizedBox(height: 30),
             const Text(
               'Brand Colors',
               style: TextStyle(
-                color:
-                    Colors.white,
+                color: Colors.white,
                 fontSize: 22,
-                fontWeight:
-                    FontWeight.bold,
+                fontWeight: FontWeight.bold,
               ),
             ),
-
-            const SizedBox(
-              height: 12,
-            ),
-
+            const SizedBox(height: 12),
             Wrap(
               spacing: 8,
-              children:
-                  ((brand!['colors']
-                              as List?) ??
-                          [])
-                      .map(
-                        (e) => Chip(
-                          label: Text(
-                            e.toString(),
-                          ),
-                        ),
-                      )
-                      .toList(),
+              children: ((brand!['colors'] as List?) ?? [])
+                  .map(
+                    (e) => Chip(
+                      label: Text(e.toString()),
+                    ),
+                  )
+                  .toList(),
             ),
-
-            const SizedBox(
-              height: 30,
-            ),
-
-            /// Personality
+            const SizedBox(height: 30),
             const Text(
               'Personality',
               style: TextStyle(
-                color:
-                    Colors.white,
+                color: Colors.white,
                 fontSize: 22,
-                fontWeight:
-                    FontWeight.bold,
+                fontWeight: FontWeight.bold,
               ),
             ),
-
-            const SizedBox(
-              height: 12,
-            ),
-
+            const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               children:
-                  ((brand![
-                                  'personalityTraits']
-                              as List?) ??
-                          [])
+                  ((brand!['personalityTraits'] as List?) ?? [])
                       .map(
                         (e) => Chip(
-                          label: Text(
-                            e.toString(),
-                          ),
+                          label: Text(e.toString()),
                         ),
                       )
                       .toList(),
             ),
-
-            const SizedBox(
-              height: 40,
-            ),
-
-            /// Create Listing
+            const SizedBox(height: 40),
             SizedBox(
-              width:
-                  double.infinity,
-              child:
-                  ElevatedButton.icon(
+              width: double.infinity,
+              child: ElevatedButton.icon(
                 onPressed: () {
-                  context.go(
-                    '/create-listing',
-                  );
+                  context.push('/create-listing');
                 },
-                icon: const Icon(
-                  Icons.add,
-                ),
-                label: const Text(
-                  'Create Listing',
-                ),
+                icon: const Icon(Icons.add),
+                label: const Text('Create Listing'),
               ),
             ),
-
-            const SizedBox(
-              height: 12,
-            ),
-
-            /// Edit Brand
+            const SizedBox(height: 12),
             SizedBox(
-              width:
-                  double.infinity,
-              child:
-                  OutlinedButton.icon(
-                onPressed:
-                    () async {
-                  final result =
-                      await context
-                          .push(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final result = await context.push(
                     '/edit-brand',
                     extra: brand,
                   );
 
-                  if (result ==
-                      true) {
+                  if (result == true) {
                     loadBrand();
                   }
                 },
-                icon: const Icon(
-                  Icons.edit,
-                ),
-                label: const Text(
-                  'Edit Brand',
-                ),
+                icon: const Icon(Icons.edit),
+                label: const Text('Edit Brand'),
               ),
             ),
-
-            const SizedBox(
-              height: 12,
-            ),
-
-            /// Generate AI Logo
+            const SizedBox(height: 12),
             SizedBox(
-              width:
-                  double.infinity,
-              child:
-                  ElevatedButton.icon(
+              width: double.infinity,
+              child: ElevatedButton.icon(
                 onPressed: () {
-
                   final generatedBrand =
                       GeneratedBrandModel(
-                    brandId:
-                        brand![
-                                'brandId'] ??
-                            '',
-                    brandName:
-                        brand![
-                                'brandName'] ??
-                            '',
-                    tagline:
-                        brand![
-                                'tagline'] ??
-                            '',
+                    brandId: brand!['brandId'] ?? '',
+                    brandName: brand!['brandName'] ?? '',
+                    tagline: brand!['tagline'] ?? '',
                     description:
-                        brand![
-                                'description'] ??
-                            '',
-                    colors:
-                        List<String>.from(
-                      brand![
-                              'colors'] ??
-                          [],
+                        brand!['description'] ?? '',
+                    colors: List<String>.from(
+                      brand!['colors'] ?? [],
                     ),
                     personalityTraits:
                         List<String>.from(
-                      brand![
-                              'personalityTraits'] ??
-                          [],
+                      brand!['personalityTraits'] ?? [],
                     ),
-                    targetAudience:
-                        List<String>.from(
-                      brand![
-                              'targetAudience'] ??
-                          [],
+                    targetAudience: List<String>.from(
+                      brand!['targetAudience'] ?? [],
                     ),
-                    brandScore:
-                        brand![
-                                'brandScore'] ??
-                            90,
+                    brandScore: brand!['brandScore'] ?? 90,
                   );
 
                   context.push(
                     '/ai-logo-generation',
-                    extra:
-                        generatedBrand,
+                    extra: generatedBrand,
                   );
                 },
-                icon: const Icon(
-                  Icons.auto_awesome,
-                ),
-                label: const Text(
-                  'Generate AI Logo',
-                ),
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text('Generate AI Logo'),
               ),
             ),
-
-            const SizedBox(
-              height: 24,
-            ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
