@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/order_model.dart';
+import '../../../services/user_service.dart';
 import '../services/order_service.dart';
 
 class SellerOrderDetailsScreen extends StatefulWidget {
@@ -19,6 +20,31 @@ class SellerOrderDetailsScreen extends StatefulWidget {
 class _SellerOrderDetailsScreenState
     extends State<SellerOrderDetailsScreen> {
   bool isUpdating = false;
+  String buyerName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    buyerName = widget.order.buyerName;
+    _loadBuyerName();
+  }
+
+  Future<void> _loadBuyerName() async {
+    if (widget.order.buyerId.isEmpty) return;
+
+    try {
+      final user = await UserService().getUser(widget.order.buyerId);
+      final resolved = user?.name.trim() ?? '';
+
+      if (!mounted || resolved.isEmpty) return;
+
+      setState(() {
+        buyerName = resolved;
+      });
+    } catch (_) {
+      // Keep the order snapshot name as a safe fallback.
+    }
+  }
 
   Future<void> _run(Future<void> Function() action) async {
     setState(() {
@@ -96,6 +122,10 @@ class _SellerOrderDetailsScreenState
         '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
         '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
 
+    final displayBuyerName = buyerName.trim().isNotEmpty
+        ? buyerName.trim()
+        : 'Buyer';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Order Details'),
@@ -127,26 +157,34 @@ class _SellerOrderDetailsScreenState
               padding: const EdgeInsets.all(18),
               child: Column(
                 children: [
-                  _detailRow('Buyer',
-                      order.buyerName.isNotEmpty ? order.buyerName : 'Buyer'),
-                  _detailRow('Quantity', order.quantity.toString()),
-                  _detailRow('Received', received),
-                  _detailRow('Fulfillment',
-                      order.fulfillmentMethod == 'delivery'
-                          ? 'Delivery'
-                          : 'Pickup'),
-                  _detailRow('Status', order.statusLabel),
+                  _detailRow(context, 'Buyer', displayBuyerName),
+                  _detailRow(context, 'Quantity', order.quantity.toString()),
+                  _detailRow(context, 'Received', received),
                   _detailRow(
+                    context,
+                    'Fulfillment',
+                    order.fulfillmentMethod == 'delivery'
+                        ? 'Delivery'
+                        : 'Pickup',
+                  ),
+                  _detailRow(context, 'Status', order.statusLabel),
+                  _detailRow(
+                    context,
                     'Unit price',
                     '\$${order.unitPrice.toStringAsFixed(2)}',
                   ),
                   _detailRow(
+                    context,
                     'Total earnings',
                     '\$${order.amount.toStringAsFixed(2)}',
                     emphasize: true,
                   ),
                   if (order.rejectionReason.isNotEmpty)
-                    _detailRow('Rejection reason', order.rejectionReason),
+                    _detailRow(
+                      context,
+                      'Rejection reason',
+                      order.rejectionReason,
+                    ),
                 ],
               ),
             ),
@@ -229,6 +267,7 @@ class _SellerOrderDetailsScreenState
   }
 
   Widget _detailRow(
+    BuildContext context,
     String label,
     String value, {
     bool emphasize = false,
@@ -242,7 +281,9 @@ class _SellerOrderDetailsScreenState
             width: 120,
             child: Text(
               label,
-              style: const TextStyle(color: Colors.white70),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
             ),
           ),
           Expanded(
