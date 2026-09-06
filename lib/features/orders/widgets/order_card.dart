@@ -6,6 +6,7 @@ class OrderCard extends StatelessWidget {
   final OrderModel order;
   final bool showSellerInfo;
   final VoidCallback? onTap;
+  final VoidCallback? onSellerTap;
   final Widget? action;
 
   const OrderCard({
@@ -13,6 +14,7 @@ class OrderCard extends StatelessWidget {
     required this.order,
     this.showSellerInfo = false,
     this.onTap,
+    this.onSellerTap,
     this.action,
   });
 
@@ -77,30 +79,53 @@ class OrderCard extends StatelessWidget {
               if (showSellerInfo) ...[
                 const SizedBox(height: 14),
                 const Divider(height: 1),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 19,
-                      backgroundImage: order.sellerLogoUrl.isNotEmpty
-                          ? NetworkImage(order.sellerLogoUrl)
-                          : null,
-                      child: order.sellerLogoUrl.isEmpty
-                          ? const Icon(Icons.storefront, size: 19)
-                          : null,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        order.sellerName.isNotEmpty
-                            ? order.sellerName
-                            : 'Seller',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
+                const SizedBox(height: 10),
+                InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: onSellerTap,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 22,
+                          backgroundColor: Colors.grey.shade200,
+                          backgroundImage: order.sellerLogoUrl.isNotEmpty
+                              ? NetworkImage(order.sellerLogoUrl)
+                              : null,
+                          child: order.sellerLogoUrl.isEmpty
+                              ? const Icon(Icons.storefront, size: 21)
+                              : null,
                         ),
-                      ),
+                        const SizedBox(width: 11),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                order.sellerName.isNotEmpty
+                                    ? order.sellerName
+                                    : 'Seller',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              if (onSellerTap != null)
+                                Text(
+                                  'View seller and listings',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: Theme.of(context).colorScheme.primary,
+                                      ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        if (onSellerTap != null)
+                          const Icon(Icons.chevron_right),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ],
               if (order.status == 'rejected' &&
@@ -108,7 +133,9 @@ class OrderCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text(
                   'Reason: ${order.rejectionReason}',
-                  style: const TextStyle(color: Colors.redAccent),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                 ),
               ],
               if (action != null) ...[
@@ -126,7 +153,7 @@ class OrderCard extends StatelessWidget {
     return Container(
       width: 82,
       height: 82,
-      color: const Color(0xFF36445E),
+      color: Colors.grey.shade200,
       child: const Icon(Icons.image_outlined, size: 34),
     );
   }
@@ -135,25 +162,25 @@ class OrderCard extends StatelessWidget {
     Color color;
     switch (order.status) {
       case 'delivered':
-        color = Colors.green;
+        color = Colors.green.shade700;
         break;
       case 'rejected':
       case 'cancelled':
-        color = Colors.redAccent;
+        color = Theme.of(context).colorScheme.error;
         break;
       case 'accepted':
       case 'ready_for_pickup':
       case 'out_for_delivery':
-        color = Colors.lightBlueAccent;
+        color = Colors.blue.shade700;
         break;
       default:
-        color = Colors.amber;
+        color = Colors.orange.shade800;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.16),
+        color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
