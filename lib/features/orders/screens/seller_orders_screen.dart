@@ -1,14 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../models/order_model.dart';
 import '../services/order_service.dart';
 import '../widgets/order_card.dart';
 
 class SellerOrdersScreen extends StatelessWidget {
-  const SellerOrdersScreen({
-    super.key,
-  });
+  const SellerOrdersScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -17,22 +16,20 @@ class SellerOrdersScreen extends StatelessWidget {
     if (user == null) {
       return const Scaffold(
         body: Center(
-          child: Text('Please sign in to view seller orders.'),
+          child: Text('Please sign in to view received orders.'),
         ),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Orders'),
+        title: const Text('Received Orders'),
       ),
       body: StreamBuilder<List<OrderModel>>(
         stream: OrderService().getSellerOrders(user.uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
@@ -40,7 +37,7 @@ class SellerOrdersScreen extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Text(
-                  'Could not load seller orders: ${snapshot.error}',
+                  'Could not load received orders: ${snapshot.error}',
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -59,8 +56,15 @@ class SellerOrdersScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             itemCount: orders.length,
             itemBuilder: (context, index) {
+              final order = orders[index];
               return OrderCard(
-                order: orders[index],
+                order: order,
+                onTap: () {
+                  context.push(
+                    '/seller-order-details',
+                    extra: order,
+                  );
+                },
               );
             },
           );
