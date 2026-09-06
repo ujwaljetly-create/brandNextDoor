@@ -10,14 +10,14 @@ import 'routes/app_router.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  
-await dotenv.load(
-  fileName: ".env",
-);
-await Firebase.initializeApp(
-  options:
-      DefaultFirebaseOptions.currentPlatform,
-);
+  await dotenv.load(
+    fileName: '.env',
+  );
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(
     const ProviderScope(
       child: BrandNextDoor(),
@@ -33,7 +33,7 @@ class BrandNextDoor extends StatelessWidget {
     return MaterialApp.router(
       title: 'Brand Next Door',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
       routerConfig: AppRouter.router,
     );
   }
