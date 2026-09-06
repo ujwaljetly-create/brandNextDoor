@@ -1,23 +1,23 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../models/order_model.dart';
 import '../../brand/services/brand_service.dart';
 import '../../brand/widgets/brand_status_card.dart';
+import '../../orders/services/order_service.dart';
+import '../../orders/widgets/order_card.dart';
 import '../widgets/dashboard_stat_card.dart';
-import '../widgets/recent_order_card.dart';
 
 class SellerDashboardScreen extends StatefulWidget {
-  const SellerDashboardScreen({
-    super.key,
-  });
+  const SellerDashboardScreen({super.key});
 
   @override
   State<SellerDashboardScreen> createState() =>
       _SellerDashboardScreenState();
 }
 
-class _SellerDashboardScreenState
-    extends State<SellerDashboardScreen> {
+class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
   bool isLoading = true;
   bool brandExists = false;
   String brandName = '';
@@ -42,23 +42,12 @@ class _SellerDashboardScreenState
         logoUrl = brand['logoUrl'] ?? '';
         completion = 0;
 
-        if (brandName.isNotEmpty) {
+        if (brandName.isNotEmpty) completion += 25;
+        if (tagline.isNotEmpty) completion += 25;
+        if ((brand['description'] ?? '').toString().isNotEmpty) {
           completion += 25;
         }
-
-        if (tagline.isNotEmpty) {
-          completion += 25;
-        }
-
-        if ((brand['description'] ?? '')
-            .toString()
-            .isNotEmpty) {
-          completion += 25;
-        }
-
-        if (logoUrl.isNotEmpty) {
-          completion += 25;
-        }
+        if (logoUrl.isNotEmpty) completion += 25;
       }
     } catch (e) {
       debugPrint('Load Brand Error: $e');
@@ -75,11 +64,11 @@ class _SellerDashboardScreenState
   Widget build(BuildContext context) {
     if (isLoading) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
+
+    final seller = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       appBar: AppBar(
@@ -107,15 +96,12 @@ class _SellerDashboardScreenState
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Manage your brand and grow your business',
-                style: TextStyle(
-                  color: Colors.grey,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 24),
               BrandStatusCard(
@@ -157,73 +143,116 @@ class _SellerDashboardScreenState
                 ],
               ),
               const SizedBox(height: 24),
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.3,
-                children: const [
-                  DashboardStatCard(
-                    title: 'Orders',
-                    value: '0',
-                    icon: Icons.shopping_bag,
-                  ),
-                  DashboardStatCard(
-                    title: 'Sales',
-                    value: '\$0',
-                    icon: Icons.attach_money,
-                  ),
-                  DashboardStatCard(
-                    title: 'Listings',
-                    value: '0',
-                    icon: Icons.inventory,
-                  ),
-                  DashboardStatCard(
-                    title: 'Messages',
-                    value: '0',
-                    icon: Icons.chat_bubble,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 30),
-              const Text(
-                'Recent Orders',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (!brandExists)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(
-                      alpha: 0.05,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Text(
-                    'Create your brand to start receiving orders.',
+              if (seller == null)
+                const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(18),
+                    child: Text('Sign in to see order activity.'),
                   ),
                 )
-              else ...[
-                const RecentOrderCard(
-                  customerName: 'John Smith',
-                  itemName: 'Handmade Candle',
-                  amount: '\$35',
+              else
+                StreamBuilder<List<OrderModel>>(
+                  stream: OrderService().getSellerOrders(seller.uid),
+                  builder: (context, snapshot) {
+                    final orders = snapshot.data ?? const <OrderModel>[];
+                    final deliveredSales = orders
+                        .where((order) => order.status == 'delivered')
+                        .fold<double>(0, (sum, order) => sum + order.amount);
+                    final pending = orders
+                        .where((order) => order.status == 'pending')
+                        .length;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        GridView.count(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 1.3,
+                          children: [
+                            DashboardStatCard(
+                              title: pending > 0
+                                  ? 'Orders ($pending new)'
+                                  : 'Orders',
+                              value: orders.length.toString(),
+                              icon: Icons.shopping_bag,
+                              onTap: () {
+                                context.push('/seller-orders');
+                              },
+                            ),
+                            DashboardStatCard(
+                              title: 'Sales',
+                              value: '\$${deliveredSales.toStringAsFixed(0)}',
+                              icon: Icons.attach_money,
+                            ),
+                            const DashboardStatCard(
+                              title: 'Listings',
+                              value: '—',
+                              icon: Icons.inventory,
+                            ),
+                            const DashboardStatCard(
+                              title: 'Messages',
+                              value: '—',
+                              icon: Icons.chat_bubble,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 30),
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Recent Orders',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                context.push('/seller-orders');
+                              },
+                              child: const Text('View all'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (snapshot.connectionState ==
+                                ConnectionState.waiting &&
+                            orders.isEmpty)
+                          const Center(child: CircularProgressIndicator())
+                        else if (orders.isEmpty)
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Text(
+                                brandExists
+                                    ? 'No customer orders yet.'
+                                    : 'Create your brand to start receiving orders.',
+                              ),
+                            ),
+                          )
+                        else
+                          ...orders.take(3).map(
+                                (order) => OrderCard(
+                                  order: order,
+                                  onTap: () {
+                                    context.push(
+                                      '/seller-order-details',
+                                      extra: order,
+                                    );
+                                  },
+                                ),
+                              ),
+                      ],
+                    );
+                  },
                 ),
-                const SizedBox(height: 12),
-                const RecentOrderCard(
-                  customerName: 'Sarah Lee',
-                  itemName: 'Gift Box',
-                  amount: '\$75',
-                ),
-              ],
-              const SizedBox(height: 100),
+              const SizedBox(height: 80),
             ],
           ),
         ),
