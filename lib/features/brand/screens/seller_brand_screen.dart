@@ -5,17 +5,13 @@ import '../../ai_brand_builder/models/generated_brand_model.dart';
 import '../services/brand_service.dart';
 
 class SellerBrandScreen extends StatefulWidget {
-  const SellerBrandScreen({
-    super.key,
-  });
+  const SellerBrandScreen({super.key});
 
   @override
-  State<SellerBrandScreen> createState() =>
-      _SellerBrandScreenState();
+  State<SellerBrandScreen> createState() => _SellerBrandScreenState();
 }
 
-class _SellerBrandScreenState
-    extends State<SellerBrandScreen> {
+class _SellerBrandScreenState extends State<SellerBrandScreen> {
   bool isLoading = true;
   Map<String, dynamic>? brand;
 
@@ -27,8 +23,7 @@ class _SellerBrandScreenState
 
   Future<void> loadBrand() async {
     try {
-      final result =
-          await BrandService().getSellerBrand();
+      final result = await BrandService().getSellerBrand();
 
       if (!mounted) return;
 
@@ -36,9 +31,8 @@ class _SellerBrandScreenState
         brand = result;
         isLoading = false;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
-
       setState(() {
         isLoading = false;
       });
@@ -57,9 +51,7 @@ class _SellerBrandScreenState
   Widget build(BuildContext context) {
     if (isLoading) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -67,25 +59,19 @@ class _SellerBrandScreenState
       return Scaffold(
         appBar: AppBar(
           leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_ios,
-            ),
+            icon: const Icon(Icons.arrow_back_ios),
             onPressed: _goBack,
           ),
           title: const Text('My Brand'),
         ),
-        body: const Center(
-          child: Text('No Brand Found'),
-        ),
+        body: const Center(child: Text('No Brand Found')),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios,
-          ),
+          icon: const Icon(Icons.arrow_back_ios),
           onPressed: _goBack,
         ),
         title: const Text('My Brand'),
@@ -95,19 +81,21 @@ class _SellerBrandScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if ((brand!['logoUrl'] ?? '')
-                .toString()
-                .isNotEmpty)
+            if ((brand!['logoUrl'] ?? '').toString().isNotEmpty)
               Center(
                 child: Container(
-                  margin: const EdgeInsets.only(
-                    bottom: 24,
+                  margin: const EdgeInsets.only(bottom: 24),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.grey.shade200),
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(18),
                     child: Image.network(
                       brand!['logoUrl'],
-                      height: 180,
+                      height: 160,
                       fit: BoxFit.contain,
                     ),
                   ),
@@ -116,7 +104,6 @@ class _SellerBrandScreenState
             Text(
               brand!['brandName'] ?? '',
               style: const TextStyle(
-                color: Colors.white,
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
               ),
@@ -124,16 +111,12 @@ class _SellerBrandScreenState
             const SizedBox(height: 8),
             Text(
               brand!['tagline'] ?? '',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 18,
-              ),
+              style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 24),
             const Text(
               'Description',
               style: TextStyle(
-                color: Colors.white,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
@@ -141,15 +124,12 @@ class _SellerBrandScreenState
             const SizedBox(height: 10),
             Text(
               brand!['description'] ?? '',
-              style: const TextStyle(
-                color: Colors.white,
-              ),
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
             const SizedBox(height: 30),
             const Text(
               'Brand Colors',
               style: TextStyle(
-                color: Colors.white,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
@@ -157,6 +137,7 @@ class _SellerBrandScreenState
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
+              runSpacing: 8,
               children: ((brand!['colors'] as List?) ?? [])
                   .map(
                     (e) => Chip(
@@ -169,7 +150,6 @@ class _SellerBrandScreenState
             const Text(
               'Personality',
               style: TextStyle(
-                color: Colors.white,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
@@ -177,14 +157,14 @@ class _SellerBrandScreenState
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
-              children:
-                  ((brand!['personalityTraits'] as List?) ?? [])
-                      .map(
-                        (e) => Chip(
-                          label: Text(e.toString()),
-                        ),
-                      )
-                      .toList(),
+              runSpacing: 8,
+              children: ((brand!['personalityTraits'] as List?) ?? [])
+                  .map(
+                    (e) => Chip(
+                      label: Text(e.toString()),
+                    ),
+                  )
+                  .toList(),
             ),
             const SizedBox(height: 40),
             SizedBox(
@@ -220,18 +200,13 @@ class _SellerBrandScreenState
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  final generatedBrand =
-                      GeneratedBrandModel(
+                  final generatedBrand = GeneratedBrandModel(
                     brandId: brand!['brandId'] ?? '',
                     brandName: brand!['brandName'] ?? '',
                     tagline: brand!['tagline'] ?? '',
-                    description:
-                        brand!['description'] ?? '',
-                    colors: List<String>.from(
-                      brand!['colors'] ?? [],
-                    ),
-                    personalityTraits:
-                        List<String>.from(
+                    description: brand!['description'] ?? '',
+                    colors: List<String>.from(brand!['colors'] ?? []),
+                    personalityTraits: List<String>.from(
                       brand!['personalityTraits'] ?? [],
                     ),
                     targetAudience: List<String>.from(
