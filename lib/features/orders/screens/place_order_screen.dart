@@ -39,7 +39,8 @@ class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final total = widget.listing.price * quantity;
+    final unitPrice = widget.listing.currentPrice;
+    final total = unitPrice * quantity;
     final canOrder = fulfillmentMethod != null && !isSubmitting;
 
     return Scaffold(
@@ -74,9 +75,27 @@ class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              '\$${widget.listing.price.toStringAsFixed(2)} each',
-              style: Theme.of(context).textTheme.bodyLarge,
+            Row(
+              children: [
+                Text(
+                  '\$${unitPrice.toStringAsFixed(2)} each',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                if (widget.listing.hasActiveDeal) ...[
+                  const SizedBox(width: 10),
+                  Text(
+                    '\$${widget.listing.price.toStringAsFixed(2)}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          decoration: TextDecoration.lineThrough,
+                        ),
+                  ),
+                  const SizedBox(width: 8),
+                  Chip(
+                    label: Text('${widget.listing.discountPercent}% off'),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ],
             ),
             const SizedBox(height: 28),
             const Text(
@@ -175,7 +194,7 @@ class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.greenAccent,
+                        color: Colors.green,
                       ),
                     ),
                   ],
@@ -228,6 +247,7 @@ class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
           : null;
 
       final now = Timestamp.now();
+      final unitPrice = widget.listing.currentPrice;
       final order = OrderModel(
         orderId: const Uuid().v4(),
         buyerId: user.uid,
@@ -240,8 +260,9 @@ class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
         productTitle: widget.listing.title,
         productImageUrl:
             widget.listing.images.isNotEmpty ? widget.listing.images.first : '',
-        unitPrice: widget.listing.price,
-        amount: widget.listing.price * quantity,
+        productCategory: widget.listing.category,
+        unitPrice: unitPrice,
+        amount: unitPrice * quantity,
         quantity: quantity,
         fulfillmentMethod: fulfillmentMethod!,
         status: 'pending',
