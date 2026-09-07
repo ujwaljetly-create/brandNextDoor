@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../models/listing_model.dart';
 import '../../brand/services/brand_service.dart';
 import '../../listings/services/listing_service.dart';
+import '../../reviews/services/review_service.dart';
+import '../../reviews/widgets/reviews_preview.dart';
 
 class SellerStorefrontScreen extends StatefulWidget {
   final String sellerId;
@@ -56,6 +58,8 @@ class _SellerStorefrontScreenState extends State<SellerStorefrontScreen> {
     final tagline = (brand?['tagline'] ?? '').toString();
     final description = (brand?['description'] ?? '').toString();
     final logoUrl = (brand?['logoUrl'] ?? '').toString();
+    final rating = (brand?['rating'] ?? 0).toDouble();
+    final totalReviews = (brand?['totalReviews'] ?? 0) as num;
 
     return Scaffold(
       appBar: AppBar(
@@ -94,6 +98,24 @@ class _SellerStorefrontScreenState extends State<SellerStorefrontScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
+                            if (rating > 0) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.star, color: Colors.amber),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    rating.toStringAsFixed(1),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text('(${totalReviews.toInt()} reviews)'),
+                                ],
+                              ),
+                            ],
                             if (tagline.isNotEmpty) ...[
                               const SizedBox(height: 6),
                               Text(
@@ -112,6 +134,12 @@ class _SellerStorefrontScreenState extends State<SellerStorefrontScreen> {
                           ],
                         ),
                       ),
+                    ),
+                    const SizedBox(height: 18),
+                    ReviewsPreview(
+                      title: 'Seller Reviews',
+                      reviews: ReviewService().getSellerReviews(widget.sellerId),
+                      sellerRating: true,
                     ),
                     const SizedBox(height: 24),
                     Row(
@@ -139,7 +167,9 @@ class _SellerStorefrontScreenState extends State<SellerStorefrontScreen> {
                       const Card(
                         child: Padding(
                           padding: EdgeInsets.all(20),
-                          child: Text('This seller has no active listings right now.'),
+                          child: Text(
+                            'This seller has no active listings right now.',
+                          ),
                         ),
                       )
                     else
@@ -189,12 +219,29 @@ class _SellerStorefrontScreenState extends State<SellerStorefrontScreen> {
                                         const SizedBox(height: 6),
                                         Text(listing.category),
                                         const SizedBox(height: 6),
-                                        Text(
-                                          '\$${listing.price.toStringAsFixed(2)}',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 17,
-                                          ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              '\$${listing.currentPrice.toStringAsFixed(2)}',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 17,
+                                              ),
+                                            ),
+                                            if (listing.rating > 0) ...[
+                                              const Spacer(),
+                                              const Icon(
+                                                Icons.star,
+                                                size: 16,
+                                                color: Colors.amber,
+                                              ),
+                                              const SizedBox(width: 3),
+                                              Text(
+                                                listing.rating
+                                                    .toStringAsFixed(1),
+                                              ),
+                                            ],
+                                          ],
                                         ),
                                       ],
                                     ),
