@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../models/order_model.dart';
 import '../../brand/services/brand_service.dart';
+import '../../reviews/services/review_service.dart';
 import '../services/order_service.dart';
 import '../widgets/order_card.dart';
 
@@ -50,6 +51,48 @@ class BuyerOrdersScreen extends StatelessWidget {
     }
   }
 
+  Widget? _buildAction(BuildContext context, OrderModel order) {
+    if (order.canBuyerCancel) {
+      return SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          onPressed: () => _cancelOrder(context, order),
+          icon: const Icon(Icons.cancel_outlined),
+          label: const Text('Cancel Order'),
+        ),
+      );
+    }
+
+    if (order.status != 'delivered') return null;
+
+    return StreamBuilder<bool>(
+      stream: ReviewService().hasReviewedOrder(order.orderId),
+      builder: (context, snapshot) {
+        final reviewed = snapshot.data ?? false;
+
+        return SizedBox(
+          width: double.infinity,
+          child: reviewed
+              ? OutlinedButton.icon(
+                  onPressed: null,
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: const Text('Reviewed'),
+                )
+              : ElevatedButton.icon(
+                  onPressed: () {
+                    context.push(
+                      '/review-order',
+                      extra: order,
+                    );
+                  },
+                  icon: const Icon(Icons.star_outline),
+                  label: const Text('Review Item & Seller'),
+                ),
+        );
+      },
+    );
+  }
+
   Widget _buildOrderCard(BuildContext context, OrderModel order) {
     final card = (Map<String, dynamic>? brand) {
       final brandName = (brand?['brandName'] ?? order.sellerName).toString();
@@ -71,16 +114,7 @@ class BuyerOrdersScreen extends StatelessWidget {
                   },
                 );
               },
-        action: order.canBuyerCancel
-            ? SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => _cancelOrder(context, order),
-                  icon: const Icon(Icons.cancel_outlined),
-                  label: const Text('Cancel Order'),
-                ),
-              )
-            : null,
+        action: _buildAction(context, order),
       );
     };
 
