@@ -2,9 +2,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../models/listing_model.dart';
 import '../../../models/order_model.dart';
 import '../../brand/services/brand_service.dart';
 import '../../brand/widgets/brand_status_card.dart';
+import '../../listings/services/listing_service.dart';
 import '../../orders/services/order_service.dart';
 import '../../orders/widgets/order_card.dart';
 import '../widgets/dashboard_stat_card.dart';
@@ -178,15 +180,28 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                         value: '\$${deliveredSales.toStringAsFixed(0)}',
                         icon: Icons.attach_money,
                       ),
-                      const DashboardStatCard(
-                        title: 'Listings',
-                        value: '—',
-                        icon: Icons.inventory,
+                      StreamBuilder<List<ListingModel>>(
+                        stream: ListingService().getSellerListings(seller.uid),
+                        builder: (context, listingSnapshot) {
+                          final listings = listingSnapshot.data ??
+                              const <ListingModel>[];
+                          return DashboardStatCard(
+                            title: 'Listings',
+                            value: listings.length.toString(),
+                            icon: Icons.inventory,
+                            onTap: () {
+                              context.push('/my-listings');
+                            },
+                          );
+                        },
                       ),
-                      const DashboardStatCard(
+                      DashboardStatCard(
                         title: 'Messages',
                         value: '—',
                         icon: Icons.chat_bubble,
+                        onTap: () {
+                          context.push('/messages');
+                        },
                       ),
                     ];
 
