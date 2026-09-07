@@ -29,6 +29,7 @@ import '../features/orders/screens/buyer_orders_screen.dart';
 import '../features/orders/screens/place_order_screen.dart';
 import '../features/orders/screens/seller_order_details_screen.dart';
 import '../features/orders/screens/seller_orders_screen.dart';
+import '../features/reviews/screens/review_order_screen.dart';
 import '../features/seller/screens/seller_dashboard_screen.dart';
 import '../features/seller/screens/seller_onboarding_screen.dart';
 import '../features/settings/screens/account_settings_screen.dart';
@@ -72,6 +73,13 @@ class AppRouter {
         builder: (context, state) {
           final listing = state.extra as ListingModel;
           return PlaceOrderScreen(listing: listing);
+        },
+      ),
+      GoRoute(
+        path: '/review-order',
+        builder: (context, state) {
+          final order = state.extra as OrderModel;
+          return ReviewOrderScreen(order: order);
         },
       ),
       GoRoute(
