@@ -42,6 +42,7 @@ class BrandNextDoor extends StatelessWidget {
       title: 'Brand Next Door',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      scaffoldMessengerKey: NotificationService.instance.scaffoldMessengerKey,
       routerConfig: AppRouter.router,
     );
   }
