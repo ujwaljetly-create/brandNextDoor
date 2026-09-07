@@ -45,15 +45,20 @@ class ReviewService {
     final reviewRef = firestore.collection('reviews').doc(review.orderId);
     final orderRef = firestore.collection('orders').doc(review.orderId);
     final listingRef = firestore.collection('listings').doc(review.listingId);
-    final brandRef = firestore.collection('brands').doc(review.brandId);
+    final brandRef = review.brandId.isNotEmpty
+        ? firestore.collection('brands').doc(review.brandId)
+        : null;
 
     await firestore.runTransaction((transaction) async {
       final existingReview = await transaction.get(reviewRef);
+      final orderDoc = await transaction.get(orderRef);
+      final listingDoc = await transaction.get(listingRef);
+      final brandDoc = brandRef == null ? null : await transaction.get(brandRef);
+
       if (existingReview.exists) {
         throw Exception('You have already reviewed this order.');
       }
 
-      final orderDoc = await transaction.get(orderRef);
       if (!orderDoc.exists) {
         throw Exception('Order not found.');
       }
@@ -66,7 +71,6 @@ class ReviewService {
         throw Exception('You cannot review this order.');
       }
 
-      final listingDoc = await transaction.get(listingRef);
       if (!listingDoc.exists) {
         throw Exception('Listing not found.');
       }
@@ -85,23 +89,20 @@ class ReviewService {
         'reviewCount': newItemCount,
       });
 
-      if (review.brandId.isNotEmpty) {
-        final brandDoc = await transaction.get(brandRef);
-        if (brandDoc.exists) {
-          final brandData = brandDoc.data()!;
-          final oldSellerCount = (brandData['totalReviews'] ?? 0) as num;
-          final oldSellerRating = (brandData['rating'] ?? 0) as num;
-          final newSellerCount = oldSellerCount.toInt() + 1;
-          final newSellerRating =
-              ((oldSellerRating.toDouble() * oldSellerCount.toDouble()) +
-                      review.sellerRating) /
-                  newSellerCount;
+      if (brandRef != null && brandDoc?.exists == true) {
+        final brandData = brandDoc!.data()!;
+        final oldSellerCount = (brandData['totalReviews'] ?? 0) as num;
+        final oldSellerRating = (brandData['rating'] ?? 0) as num;
+        final newSellerCount = oldSellerCount.toInt() + 1;
+        final newSellerRating =
+            ((oldSellerRating.toDouble() * oldSellerCount.toDouble()) +
+                    review.sellerRating) /
+                newSellerCount;
 
-          transaction.update(brandRef, {
-            'rating': newSellerRating,
-            'totalReviews': newSellerCount,
-          });
-        }
+        transaction.update(brandRef, {
+          'rating': newSellerRating,
+          'totalReviews': newSellerCount,
+        });
       }
 
       transaction.set(reviewRef, review.toMap());
