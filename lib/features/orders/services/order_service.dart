@@ -117,26 +117,29 @@ class OrderService {
           ? quantityValue
           : int.tryParse(quantityValue.toString()) ?? 1;
 
+      DocumentReference<Map<String, dynamic>>? listingRef;
+      DocumentSnapshot<Map<String, dynamic>>? listingSnapshot;
+
+      if (listingId.isNotEmpty) {
+        listingRef = firestore.collection('listings').doc(listingId);
+        listingSnapshot = await transaction.get(listingRef);
+      }
+
       transaction.update(orderRef, {
         'status': 'delivered',
         'updatedAt': Timestamp.now(),
         'completedAt': Timestamp.now(),
       });
 
-      if (listingId.isNotEmpty) {
-        final listingRef = firestore.collection('listings').doc(listingId);
-        final listingSnapshot = await transaction.get(listingRef);
+      if (listingRef != null && listingSnapshot?.exists == true) {
+        final soldValue = listingSnapshot!.data()?['soldCount'] ?? 0;
+        final soldCount = soldValue is int
+            ? soldValue
+            : int.tryParse(soldValue.toString()) ?? 0;
 
-        if (listingSnapshot.exists) {
-          final soldValue = listingSnapshot.data()?['soldCount'] ?? 0;
-          final soldCount = soldValue is int
-              ? soldValue
-              : int.tryParse(soldValue.toString()) ?? 0;
-
-          transaction.update(listingRef, {
-            'soldCount': soldCount + quantity,
-          });
-        }
+        transaction.update(listingRef, {
+          'soldCount': soldCount + quantity,
+        });
       }
     });
   }
