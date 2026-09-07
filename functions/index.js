@@ -52,7 +52,6 @@ async function sendToUser({ userId, title, body, data = {} }) {
     android: {
       priority: 'high',
       notification: {
-        channelId: 'orders',
         sound: 'default',
       },
     },
