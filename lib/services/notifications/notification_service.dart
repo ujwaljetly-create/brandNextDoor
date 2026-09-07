@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import '../../firebase_options.dart';
 
@@ -25,6 +25,9 @@ class NotificationService {
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
+
   StreamSubscription<User?>? _authSubscription;
   StreamSubscription<String>? _tokenSubscription;
   StreamSubscription<RemoteMessage>? _foregroundSubscription;
@@ -43,9 +46,25 @@ class NotificationService {
     );
 
     _foregroundSubscription = FirebaseMessaging.onMessage.listen((message) {
-      debugPrint(
-        'Foreground notification: ${message.notification?.title ?? message.data['title'] ?? ''}',
-      );
+      final title =
+          message.notification?.title ?? message.data['title']?.toString() ?? '';
+      final body =
+          message.notification?.body ?? message.data['body']?.toString() ?? '';
+
+      final text = [title, body]
+          .where((value) => value.trim().isNotEmpty)
+          .join('\n');
+
+      if (text.isNotEmpty) {
+        scaffoldMessengerKey.currentState
+          ?..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(text),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+      }
     });
 
     _authSubscription = FirebaseAuth.instance.authStateChanges().listen(
