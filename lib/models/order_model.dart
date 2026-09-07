@@ -11,6 +11,7 @@ class OrderModel {
   final String listingId;
   final String productTitle;
   final String productImageUrl;
+  final String productCategory;
   final double unitPrice;
   final double amount;
   final int quantity;
@@ -33,6 +34,7 @@ class OrderModel {
     required this.listingId,
     required this.productTitle,
     required this.productImageUrl,
+    this.productCategory = '',
     required this.unitPrice,
     required this.amount,
     required this.quantity,
@@ -63,6 +65,7 @@ class OrderModel {
       listingId: map['listingId'] ?? '',
       productTitle: map['productTitle'] ?? '',
       productImageUrl: map['productImageUrl'] ?? '',
+      productCategory: map['productCategory'] ?? '',
       unitPrice: (map['unitPrice'] ??
               (quantity > 0 ? amount / quantity : amount))
           .toDouble(),
@@ -90,6 +93,7 @@ class OrderModel {
       'listingId': listingId,
       'productTitle': productTitle,
       'productImageUrl': productImageUrl,
+      'productCategory': productCategory,
       'unitPrice': unitPrice,
       'amount': amount,
       'quantity': quantity,
