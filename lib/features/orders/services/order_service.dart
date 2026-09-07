@@ -96,25 +96,48 @@ class OrderService {
   }
 
   Future<void> markDelivered(String orderId) async {
-    final ref = firestore.collection('orders').doc(orderId);
+    final orderRef = firestore.collection('orders').doc(orderId);
 
     await firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(ref);
+      final snapshot = await transaction.get(orderRef);
       if (!snapshot.exists) {
         throw Exception('Order no longer exists.');
       }
 
-      final current = snapshot.data()?['status'] ?? '';
+      final data = snapshot.data()!;
+      final current = data['status'] ?? '';
       if (current != 'ready_for_pickup' &&
           current != 'out_for_delivery') {
         throw Exception('Order is not ready to be completed.');
       }
 
-      transaction.update(ref, {
+      final listingId = (data['listingId'] ?? '').toString();
+      final quantityValue = data['quantity'] ?? 1;
+      final quantity = quantityValue is int
+          ? quantityValue
+          : int.tryParse(quantityValue.toString()) ?? 1;
+
+      transaction.update(orderRef, {
         'status': 'delivered',
         'updatedAt': Timestamp.now(),
         'completedAt': Timestamp.now(),
       });
+
+      if (listingId.isNotEmpty) {
+        final listingRef = firestore.collection('listings').doc(listingId);
+        final listingSnapshot = await transaction.get(listingRef);
+
+        if (listingSnapshot.exists) {
+          final soldValue = listingSnapshot.data()?['soldCount'] ?? 0;
+          final soldCount = soldValue is int
+              ? soldValue
+              : int.tryParse(soldValue.toString()) ?? 0;
+
+          transaction.update(listingRef, {
+            'soldCount': soldCount + quantity,
+          });
+        }
+      }
     });
   }
 
