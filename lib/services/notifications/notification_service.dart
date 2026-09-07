@@ -38,13 +38,6 @@ class NotificationService {
   Future<void> initialize() async {
     if (_authSubscription != null) return;
 
-    await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
-    );
-
     _foregroundSubscription = FirebaseMessaging.onMessage.listen((message) {
       final title =
           message.notification?.title ?? message.data['title']?.toString() ?? '';
@@ -92,6 +85,13 @@ class NotificationService {
     }
 
     try {
+      await _messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      );
+
       final token = await _messaging.getToken();
       if (token == null || token.isEmpty) return;
 
