@@ -21,613 +21,268 @@ class BuyerHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _BuyerHomeScreenState extends ConsumerState<BuyerHomeScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  final PageController _dealsController = PageController(viewportFraction: 0.88);
-  final PageController _topSellingController =
-      PageController(viewportFraction: 0.88);
+  static const navy = Color(0xFF0C2430);
+  static const gold = Color(0xFFC99245);
+  static const cream = Color(0xFFF8F3EA);
 
-  Timer? _carouselTimer;
-  String _searchText = '';
-  String _cityName = 'Finding your location...';
-  bool _locationLoading = true;
-  int _currentDealIndex = 0;
-  int _currentTopIndex = 0;
-  int _currentDealCount = 0;
-  int _currentTopCount = 0;
+  final _searchController = TextEditingController();
+  final _bannerController = PageController(viewportFraction: .94);
+  Timer? _bannerTimer;
+  String _search = '';
+  String _city = 'Nearby';
+  int _bannerIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadCurrentCity();
-    _carouselTimer = Timer.periodic(const Duration(seconds: 4), (_) {
-      _advanceCarousel(
-        controller: _dealsController,
-        count: _currentDealCount,
-        current: _currentDealIndex,
-        onIndex: (value) => _currentDealIndex = value,
-      );
-      _advanceCarousel(
-        controller: _topSellingController,
-        count: _currentTopCount,
-        current: _currentTopIndex,
-        onIndex: (value) => _currentTopIndex = value,
+    _loadCity();
+    _bannerTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!_bannerController.hasClients) return;
+      _bannerIndex = (_bannerIndex + 1) % 3;
+      _bannerController.animateToPage(
+        _bannerIndex,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeInOut,
       );
     });
-  }
-
-  void _advanceCarousel({
-    required PageController controller,
-    required int count,
-    required int current,
-    required ValueChanged<int> onIndex,
-  }) {
-    if (!controller.hasClients || count <= 1) return;
-    final next = (current + 1) % count;
-    onIndex(next);
-    controller.animateToPage(
-      next,
-      duration: const Duration(milliseconds: 450),
-      curve: Curves.easeInOut,
-    );
   }
 
   @override
   void dispose() {
-    _carouselTimer?.cancel();
+    _bannerTimer?.cancel();
+    _bannerController.dispose();
     _searchController.dispose();
-    _dealsController.dispose();
-    _topSellingController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadCurrentCity() async {
+  Future<void> _loadCity() async {
     try {
-      final enabled = await Geolocator.isLocationServiceEnabled();
-      if (!enabled) {
-        _setCityFallback();
-        return;
-      }
-
       var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-
       if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        _setCityFallback();
-        return;
-      }
-
+          permission == LocationPermission.deniedForever) return;
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.low,
-        ),
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
       );
-
       final places = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
       );
-      final place = places.isNotEmpty ? places.first : null;
-      final city = (place?.locality ?? '').trim();
-      final fallback = (place?.subAdministrativeArea ?? '').trim();
-
-      if (!mounted) return;
-      setState(() {
-        _cityName = city.isNotEmpty
-            ? city
-            : fallback.isNotEmpty
-                ? fallback
-                : 'Choose location';
-        _locationLoading = false;
-      });
-    } catch (_) {
-      _setCityFallback();
-    }
+      if (!mounted || places.isEmpty) return;
+      final name = (places.first.locality ?? '').trim();
+      if (name.isNotEmpty) setState(() => _city = name);
+    } catch (_) {}
   }
 
-  void _setCityFallback() {
-    if (!mounted) return;
-    setState(() {
-      _cityName = 'Choose location';
-      _locationLoading = false;
-    });
-  }
-
-  Future<void> _changeLocation() async {
-    final controller = TextEditingController(
-      text: _cityName == 'Choose location' || _locationLoading ? '' : _cityName,
-    );
-
-    final city = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Change location'),
-        content: TextField(
-          controller: controller,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(
-            labelText: 'City name',
-            prefixIcon: Icon(Icons.location_city_outlined),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          TextButton.icon(
-            onPressed: () => Navigator.pop(dialogContext, '__current__'),
-            icon: const Icon(Icons.my_location),
-            label: const Text('Use current'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final value = controller.text.trim();
-              if (value.isNotEmpty) {
-                Navigator.pop(dialogContext, value);
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-
-    controller.dispose();
-    if (city == null) return;
-
-    if (city == '__current__') {
-      setState(() {
-        _cityName = 'Finding your location...';
-        _locationLoading = true;
-      });
-      await _loadCurrentCity();
-      return;
-    }
-
-    setState(() {
-      _cityName = city;
-      _locationLoading = false;
-    });
-  }
-
-  bool _matchesCurrentCity(ListingModel listing) {
-    if (_locationLoading || _cityName == 'Choose location') return true;
-    if (listing.city.trim().isEmpty) return false;
-    return listing.city.trim().toLowerCase() == _cityName.trim().toLowerCase();
-  }
-
-  List<ListingModel> _filterListings(List<ListingModel> items) {
-    final query = _searchText.trim().toLowerCase();
-    if (query.isEmpty) return items;
-
-    return items.where((listing) {
-      return listing.title.toLowerCase().contains(query) ||
-          listing.category.toLowerCase().contains(query) ||
-          listing.description.toLowerCase().contains(query) ||
-          listing.city.toLowerCase().contains(query);
+  List<ListingModel> _filter(List<ListingModel> items) {
+    final q = _search.trim().toLowerCase();
+    if (q.isEmpty) return items;
+    return items.where((item) {
+      return item.title.toLowerCase().contains(q) ||
+          item.category.toLowerCase().contains(q) ||
+          item.description.toLowerCase().contains(q);
     }).toList();
   }
 
-  List<ListingModel> _interestItems(
-    List<ListingModel> items,
-    List<OrderModel> orders,
-  ) {
+  List<ListingModel> _recommended(List<ListingModel> items, List<OrderModel> orders) {
     final categories = orders
-        .where((order) => order.status == 'delivered')
-        .map((order) => order.productCategory.trim().toLowerCase())
-        .where((category) => category.isNotEmpty)
+        .where((o) => o.status == 'delivered')
+        .map((o) => o.productCategory.toLowerCase().trim())
+        .where((e) => e.isNotEmpty)
         .toSet();
-
-    final recommendations = categories.isEmpty
+    final result = categories.isEmpty
         ? [...items]
-        : items
-            .where(
-              (listing) => categories.contains(listing.category.toLowerCase()),
-            )
-            .toList();
-
-    recommendations.sort((a, b) {
-      final ratingCompare = b.rating.compareTo(a.rating);
-      if (ratingCompare != 0) return ratingCompare;
-      return b.soldCount.compareTo(a.soldCount);
+        : items.where((e) => categories.contains(e.category.toLowerCase())).toList();
+    result.sort((a, b) {
+      final sold = b.soldCount.compareTo(a.soldCount);
+      return sold != 0 ? sold : b.rating.compareTo(a.rating);
     });
-
-    return recommendations.take(8).toList();
+    return result.take(8).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    final listings = ref.watch(buyerListingsProvider);
+    final asyncListings = ref.watch(buyerListingsProvider);
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        titleSpacing: 20,
-        title: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: _changeLocation,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+      backgroundColor: cream,
+      body: SafeArea(
+        child: asyncListings.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Could not load marketplace: $e')),
+          data: (items) {
+            final visible = _filter(items);
+            final hotDeals = items.where((e) => e.hasActiveDeal).take(8).toList();
+            final trending = [...items]
+              ..sort((a, b) {
+                final sold = b.soldCount.compareTo(a.soldCount);
+                return sold != 0 ? sold : b.rating.compareTo(a.rating);
+              });
+
+            return Column(
               children: [
-                const Icon(Icons.location_on_outlined, size: 21),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    _cityName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
+                _header(),
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      _searchBar(),
+                      if (_search.isEmpty) ...[
+                        _categories(),
+                        _heroBanner(),
+                        _sectionTitle('Trending Near You', onTap: () => context.push('/marketplace')),
+                        _horizontalProducts(trending.take(8).toList()),
+                        if (hotDeals.isNotEmpty) ...[
+                          _sectionTitle('Hot Deals in $_city', onTap: () => context.push('/marketplace')),
+                          _horizontalProducts(hotDeals),
+                        ],
+                        _sectionTitle('Based on Your Interest'),
+                        if (user == null)
+                          _horizontalProducts(items.take(8).toList())
+                        else
+                          StreamBuilder<List<OrderModel>>(
+                            stream: OrderService().getBuyerOrders(user.uid),
+                            builder: (context, snapshot) =>
+                                _horizontalProducts(_recommended(items, snapshot.data ?? const [])),
+                          ),
+                        _sectionTitle('Discover Local Brands'),
+                      ] else
+                        _sectionTitle('Search Results'),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 30),
+                        child: visible.isEmpty
+                            ? const Padding(
+                                padding: EdgeInsets.all(30),
+                                child: Center(child: Text('No products found.')),
+                              )
+                            : GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: visible.length,
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  childAspectRatio: .72,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                ),
+                                itemBuilder: (_, i) => ProductCard(listing: visible[i]),
+                              ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 3),
-                const Icon(Icons.keyboard_arrow_down, size: 21),
               ],
+            );
+          },
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: gold,
+        foregroundColor: Colors.white,
+        onPressed: () => context.push('/account-type'),
+        child: const Icon(Icons.add),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: _bottomNav(),
+    );
+  }
+
+  Widget _header() {
+    return Container(
+      color: navy,
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Text(
+              'BRAND\nNEXT DOOR',
+              style: TextStyle(
+                color: Colors.white,
+                fontFamily: 'serif',
+                fontWeight: FontWeight.w700,
+                letterSpacing: 3,
+                height: .95,
+                fontSize: 15,
+              ),
             ),
           ),
-        ),
-        actions: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              const Text('Discover nearby', style: TextStyle(color: Colors.white70, fontSize: 11)),
+              Row(
+                children: [
+                  const Icon(Icons.location_on_outlined, color: gold, size: 17),
+                  const SizedBox(width: 4),
+                  Text(_city, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(width: 8),
           IconButton(
-            tooltip: 'Settings',
-            onPressed: () {
-              context.push('/settings?role=buyer');
-            },
-            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push('/settings?role=buyer'),
+            icon: const Icon(Icons.person_outline, color: Colors.white),
           ),
         ],
       ),
-      body: listings.when(
-        data: (items) {
-          final filteredItems = _filterListings(items);
-          final hotDeals = items
-              .where((listing) => listing.hasActiveDeal)
-              .where(_matchesCurrentCity)
-              .take(6)
-              .toList();
-          final topSelling = items.where((listing) => listing.soldCount > 0).toList()
-            ..sort((a, b) => b.soldCount.compareTo(a.soldCount));
-          final topSellingItems = topSelling.take(6).toList();
+    );
+  }
 
-          _currentDealCount = hotDeals.length;
-          _currentTopCount = topSellingItems.length;
-
-          if (_currentDealIndex >= hotDeals.length && hotDeals.isNotEmpty) {
-            _currentDealIndex = 0;
-          }
-          if (_currentTopIndex >= topSellingItems.length &&
-              topSellingItems.isNotEmpty) {
-            _currentTopIndex = 0;
-          }
-
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-            children: [
-              TextField(
-                controller: _searchController,
-                onChanged: (value) {
-                  setState(() {
-                    _searchText = value;
-                  });
-                },
-                decoration: InputDecoration(
-                  hintText: 'Search food, products, services...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchText.isNotEmpty
-                      ? IconButton(
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {
-                              _searchText = '';
-                            });
-                          },
-                          icon: const Icon(Icons.close),
-                        )
-                      : null,
-                ),
-              ),
-              if (_searchText.isEmpty) ...[
-                const SizedBox(height: 24),
-                _sectionHeader(
-                  title: 'Hot deals near me',
-                  action: 'See all',
-                  onTap: () => context.push('/marketplace'),
-                ),
-                const SizedBox(height: 12),
-                if (hotDeals.isEmpty)
-                  _emptySection(
-                    'No active hot deals in $_cityName yet.',
-                  )
-                else
-                  SizedBox(
-                    height: 190,
-                    child: PageView.builder(
-                      controller: _dealsController,
-                      itemCount: hotDeals.length,
-                      onPageChanged: (index) {
-                        _currentDealIndex = index;
-                      },
-                      itemBuilder: (context, index) => _DealCard(
-                        listing: hotDeals[index],
-                        cityName: _cityName,
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 26),
-                _sectionHeader(title: 'Top selling items'),
-                const SizedBox(height: 12),
-                if (topSellingItems.isEmpty)
-                  _emptySection(
-                    'Top selling items will appear after completed orders.',
-                  )
-                else
-                  SizedBox(
-                    height: 178,
-                    child: PageView.builder(
-                      controller: _topSellingController,
-                      itemCount: topSellingItems.length,
-                      onPageChanged: (index) {
-                        _currentTopIndex = index;
-                      },
-                      itemBuilder: (context, index) => _TopSellingCard(
-                        listing: topSellingItems[index],
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 26),
-                _sectionHeader(title: 'Based on your interest'),
-                const SizedBox(height: 12),
-                if (user == null)
-                  _interestStrip(items.take(8).toList())
-                else
-                  StreamBuilder<List<OrderModel>>(
-                    stream: OrderService().getBuyerOrders(user.uid),
-                    builder: (context, snapshot) {
-                      final recommendations = _interestItems(
-                        items,
-                        snapshot.data ?? const <OrderModel>[],
-                      );
-                      return _interestStrip(recommendations);
-                    },
-                  ),
-                const SizedBox(height: 26),
-              ],
-              Text(
-                _searchText.isEmpty ? 'Discover local brands' : 'Search results',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (filteredItems.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
-                  child: Center(child: Text('No listings found.')),
-                )
-              else
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: filteredItems.length,
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: .72,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemBuilder: (context, index) {
-                    return ProductCard(listing: filteredItems[index]);
-                  },
-                ),
-            ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, stack) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(
-              'Could not load listings: $e',
-              textAlign: TextAlign.center,
-            ),
+  Widget _searchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (v) => setState(() => _search = v),
+        decoration: InputDecoration(
+          hintText: 'Search brands & products...',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: const Icon(Icons.tune),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(28),
+            borderSide: BorderSide.none,
           ),
         ),
       ),
     );
   }
 
-  Widget _sectionHeader({
-    required String title,
-    String? action,
-    VoidCallback? onTap,
-  }) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        if (action != null)
-          TextButton(
-            onPressed: onTap,
-            child: Text(action),
-          ),
-      ],
-    );
-  }
-
-  Widget _emptySection(String message) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          children: [
-            const Icon(Icons.local_offer_outlined),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _interestStrip(List<ListingModel> items) {
-    if (items.isEmpty) {
-      return _emptySection('Recommendations will appear as you shop.');
-    }
-
+  Widget _categories() {
+    const data = [
+      ('Women', Icons.checkroom_outlined),
+      ('Men', Icons.person_outline),
+      ('Home', Icons.home_outlined),
+      ('Beauty', Icons.spa_outlined),
+      ('Food', Icons.restaurant_outlined),
+    ];
     return SizedBox(
-      height: 190,
+      height: 72,
       child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
-        itemCount: items.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final listing = items[index];
-          return SizedBox(
-            width: 150,
-            child: _RecommendationCard(listing: listing),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _DealCard extends StatelessWidget {
-  final ListingModel listing;
-  final String cityName;
-
-  const _DealCard({
-    required this.listing,
-    required this.cityName,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(22),
-        onTap: () {
-          context.push('/listing-details', extra: listing);
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF7B61FF), Color(0xFFE14DAD)],
+        itemCount: data.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (_, i) => InkWell(
+          onTap: () => context.push('/marketplace?category=${Uri.encodeComponent(data[i].$1)}'),
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            width: 68,
+            decoration: BoxDecoration(
+              color: i == 0 ? const Color(0xFFEADCC7) : navy,
+              borderRadius: BorderRadius.circular(18),
             ),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(22),
-            child: Stack(
-              fit: StackFit.expand,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (listing.images.isNotEmpty)
-                  Opacity(
-                    opacity: 0.30,
-                    child: Image.network(
-                      listing.images.first,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                    ),
-                  ),
-                Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Color(0xB83B145F)],
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.94),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              '${listing.discountPercent}% OFF',
-                              style: const TextStyle(
-                                color: Color(0xFF6D28D9),
-                                fontWeight: FontWeight.w800,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            listing.city.isNotEmpty ? listing.city : cityName,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-                      Text(
-                        listing.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 21,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Text(
-                            '\$${listing.currentPrice.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '\$${listing.price.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              decoration: TextDecoration.lineThrough,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                Icon(data[i].$2, color: i == 0 ? navy : Colors.white, size: 22),
+                const SizedBox(height: 4),
+                Text(data[i].$1, style: TextStyle(color: i == 0 ? navy : Colors.white, fontSize: 10)),
               ],
             ),
           ),
@@ -635,141 +290,110 @@ class _DealCard extends StatelessWidget {
       ),
     );
   }
-}
 
-class _TopSellingCard extends StatelessWidget {
-  final ListingModel listing;
-
-  const _TopSellingCard({required this.listing});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _heroBanner() {
     return Padding(
-      padding: const EdgeInsets.only(right: 12),
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () => context.push('/listing-details', extra: listing),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 140,
-                height: double.infinity,
-                child: listing.images.isNotEmpty
-                    ? Image.network(
-                        listing.images.first,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            const Icon(Icons.image_outlined, size: 44),
-                      )
-                    : const Icon(Icons.image_outlined, size: 44),
+      padding: const EdgeInsets.only(top: 14),
+      child: SizedBox(
+        height: 165,
+        child: PageView.builder(
+          controller: _bannerController,
+          itemCount: 3,
+          itemBuilder: (_, i) => Padding(
+            padding: const EdgeInsets.only(left: 16, right: 6),
+            child: Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: i.isEven ? navy : const Color(0xFFE8D4B8),
+                borderRadius: BorderRadius.circular(22),
               ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'TOP SELLER',
-                        style: TextStyle(
-                          color: Color(0xFF7B61FF),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        listing.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text('${listing.soldCount} sold'),
-                      const SizedBox(height: 8),
-                      Text(
-                        '\$${listing.currentPrice.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RecommendationCard extends StatelessWidget {
-  final ListingModel listing;
-
-  const _RecommendationCard({required this.listing});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => context.push('/listing-details', extra: listing),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: 105,
-              width: double.infinity,
-              child: listing.images.isNotEmpty
-                  ? Image.network(
-                      listing.images.first,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.image_outlined),
-                    )
-                  : const Icon(Icons.image_outlined),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Text(
-                    listing.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 5),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '\$${listing.currentPrice.toStringAsFixed(2)}',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          i == 0 ? 'LOCAL BRANDS\nBIGGER STORIES.' : 'SHOP SMALL.\nDISCOVER MORE.',
+                          style: TextStyle(
+                            color: i.isEven ? Colors.white : navy,
+                            fontFamily: 'serif',
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            height: 1.08,
+                          ),
                         ),
-                      ),
-                      if (listing.rating > 0) ...[
-                        const Icon(Icons.star, size: 15, color: Colors.amber),
-                        const SizedBox(width: 2),
-                        Text(listing.rating.toStringAsFixed(1)),
+                        const SizedBox(height: 8),
+                        Text('Exceptional style. Right next door.', style: TextStyle(color: i.isEven ? Colors.white70 : navy)),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 34,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(backgroundColor: gold),
+                            onPressed: () => context.push('/marketplace'),
+                            child: const Text('EXPLORE →'),
+                          ),
+                        ),
                       ],
-                    ],
+                    ),
                   ),
+                  Icon(Icons.storefront_outlined, size: 72, color: i.isEven ? gold : navy),
                 ],
               ),
             ),
-          ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _sectionTitle(String title, {VoidCallback? onTap}) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+      child: Row(
+        children: [
+          Expanded(child: Text(title, style: const TextStyle(color: navy, fontFamily: 'serif', fontSize: 22, fontWeight: FontWeight.w700))),
+          if (onTap != null) TextButton(onPressed: onTap, child: const Text('See All')),
+        ],
+      ),
+    );
+  }
+
+  Widget _horizontalProducts(List<ListingModel> items) {
+    if (items.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        child: Text('More local finds are coming soon.'),
+      );
+    }
+    return SizedBox(
+      height: 240,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (_, i) => SizedBox(width: 170, child: ProductCard(listing: items[i])),
+      ),
+    );
+  }
+
+  Widget _bottomNav() {
+    return NavigationBar(
+      backgroundColor: Colors.white,
+      selectedIndex: 0,
+      onDestinationSelected: (index) {
+        if (index == 1) context.push('/marketplace');
+        if (index == 2) context.push('/buyer-orders');
+        if (index == 3) context.push('/settings?role=buyer');
+      },
+      destinations: const [
+        NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
+        NavigationDestination(icon: Icon(Icons.search), label: 'Explore'),
+        NavigationDestination(icon: Icon(Icons.favorite_border), label: 'Orders'),
+        NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile'),
+      ],
     );
   }
 }
