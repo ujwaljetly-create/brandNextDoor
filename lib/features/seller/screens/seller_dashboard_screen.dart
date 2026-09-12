@@ -126,8 +126,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                       children: [
                         _tab('Overview', true),
                         _tab('Products', false, onTap: () => context.push('/my-listings')),
-                        _tab('Orders', false, onTap: () => context.push('/seller-orders')),
-                        _tab('Insights', false),
+                        _tab('Insights', false, onTap: () => context.push('/seller-analytics')),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -172,7 +171,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                                       DashboardStatCard(title: 'Orders', value: orders.length.toString(), icon: Icons.shopping_bag_outlined, changeLabel: pending > 0 ? '$pending new' : null, onTap: () => context.push('/seller-orders')),
                                       DashboardStatCard(title: 'Total Sales', value: '\$${deliveredSales.toStringAsFixed(0)}', icon: Icons.attach_money, changeLabel: deliveredSales > 0 ? 'Completed orders' : null),
                                       DashboardStatCard(title: 'Products', value: listings.length.toString(), icon: Icons.inventory_2_outlined, onTap: () => context.push('/my-listings')),
-                                      DashboardStatCard(title: 'Profile Visits', value: brandExists ? 'Live' : '—', icon: Icons.insights_outlined, changeLabel: brandExists ? 'Store active' : null),
+                                      DashboardStatCard(title: 'Profile Visits', value: brandExists ? 'Live' : '—', icon: Icons.insights_outlined, changeLabel: brandExists ? 'Store active' : null, onTap: () => context.push('/seller-analytics')),
                                     ],
                                   ),
                                   const SizedBox(height: 16),
