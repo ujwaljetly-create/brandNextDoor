@@ -30,6 +30,7 @@ import '../features/orders/screens/place_order_screen.dart';
 import '../features/orders/screens/seller_order_details_screen.dart';
 import '../features/orders/screens/seller_orders_screen.dart';
 import '../features/reviews/screens/review_order_screen.dart';
+import '../features/seller/screens/seller_analytics_screen.dart';
 import '../features/seller/screens/seller_dashboard_screen.dart';
 import '../features/seller/screens/seller_onboarding_screen.dart';
 import '../features/settings/screens/account_settings_screen.dart';
@@ -74,6 +75,7 @@ class AppRouter {
         path: '/seller-order-details',
         builder: (context, state) => SellerOrderDetailsScreen(order: state.extra as OrderModel),
       ),
+      GoRoute(path: '/seller-analytics', builder: (context, state) => const SellerAnalyticsScreen()),
       GoRoute(path: '/ai-listing-builder', builder: (context, state) => const AIListingBuilderScreen()),
       GoRoute(
         path: '/ai-listing-result',
