@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,8 +9,15 @@ import '../models/generated_brand_model.dart';
 
 class AIBrandStudioScreen extends StatefulWidget {
   final GeneratedBrandModel brand;
+  final String logoPreference;
+  final String? logoPath;
 
-  const AIBrandStudioScreen({super.key, required this.brand});
+  const AIBrandStudioScreen({
+    super.key,
+    required this.brand,
+    this.logoPreference = 'ai',
+    this.logoPath,
+  });
 
   @override
   State<AIBrandStudioScreen> createState() => _AIBrandStudioScreenState();
@@ -21,6 +30,7 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
 
   bool isSaving = false;
   bool isGenerating = false;
+  bool uploadedManualLogo = false;
   String? savedBrandId;
 
   late String brandName;
@@ -63,12 +73,7 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
       isScrollControlled: true,
       showDragHandle: true,
       builder: (context) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          22,
-          6,
-          22,
-          MediaQuery.of(context).viewInsets.bottom + 24,
-        ),
+        padding: EdgeInsets.fromLTRB(22, 6, 22, MediaQuery.of(context).viewInsets.bottom + 24),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -139,10 +144,23 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
   }
 
   Future<String> _ensureSaved() async {
-    if (savedBrandId != null && savedBrandId!.isNotEmpty) return savedBrandId!;
-    final id = await BrandService().saveGeneratedBrand(_currentBrand());
-    savedBrandId = id;
-    return id;
+    if (savedBrandId == null || savedBrandId!.isEmpty) {
+      savedBrandId = await BrandService().saveGeneratedBrand(_currentBrand());
+    }
+
+    if (!uploadedManualLogo &&
+        widget.logoPreference == 'upload' &&
+        widget.logoPath != null &&
+        widget.logoPath!.isNotEmpty) {
+      final file = File(widget.logoPath!);
+      if (await file.exists()) {
+        final bytes = await file.readAsBytes();
+        await BrandService().saveBrandLogo(brandId: savedBrandId!, bytes: bytes);
+        uploadedManualLogo = true;
+      }
+    }
+
+    return savedBrandId!;
   }
 
   Future<void> _generateLogo() async {
@@ -153,7 +171,9 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
       await context.push('/ai-logo-generation', extra: _currentBrand(brandId: id));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not prepare logo generation: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not prepare logo generation: $e')),
+      );
     } finally {
       if (mounted) setState(() => isSaving = false);
     }
@@ -167,7 +187,9 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
       context.go('/seller-dashboard');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not save brand: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not save brand: $e')),
+      );
     } finally {
       if (mounted) setState(() => isSaving = false);
     }
@@ -175,6 +197,12 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final manualLogo = widget.logoPreference == 'upload' &&
+            widget.logoPath != null &&
+            File(widget.logoPath!).existsSync()
+        ? File(widget.logoPath!)
+        : null;
+
     return Scaffold(
       backgroundColor: _cream,
       appBar: AppBar(
@@ -184,7 +212,10 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
           onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back, color: _navy),
         ),
-        title: const Text('Your Brand is Ready!', style: TextStyle(color: _navy, fontFamily: 'serif', fontWeight: FontWeight.w700)),
+        title: const Text(
+          'Your Brand is Ready!',
+          style: TextStyle(color: _navy, fontFamily: 'serif', fontWeight: FontWeight.w700),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
@@ -198,22 +229,33 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
               gradient: const LinearGradient(colors: [Color(0xFFF1DEC0), Color(0xFFE2C79D)]),
             ),
             child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.local_florist_outlined, color: _navy, size: 50),
-                  const SizedBox(height: 12),
-                  Text(brandName.toUpperCase(), textAlign: TextAlign.center, style: const TextStyle(color: _navy, fontFamily: 'serif', fontSize: 29, fontWeight: FontWeight.w700, letterSpacing: 2)),
-                  const SizedBox(height: 5),
-                  Text(tagline, textAlign: TextAlign.center, style: const TextStyle(color: _navy, fontSize: 12)),
-                ],
-              ),
+              child: manualLogo != null
+                  ? Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: Image.file(manualLogo, fit: BoxFit.contain),
+                      ),
+                    )
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.local_florist_outlined, color: _navy, size: 50),
+                        const SizedBox(height: 12),
+                        Text(
+                          brandName.toUpperCase(),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: _navy, fontFamily: 'serif', fontSize: 29, fontWeight: FontWeight.w700, letterSpacing: 2),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(tagline, textAlign: TextAlign.center, style: const TextStyle(color: _navy, fontSize: 12)),
+                      ],
+                    ),
             ),
           ),
           const SizedBox(height: 22),
           _section(
             title: 'Brand Colors',
-            action: null,
             child: Wrap(
               spacing: 9,
               runSpacing: 9,
@@ -232,7 +274,6 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
           ),
           _section(
             title: 'Brand Personality',
-            action: null,
             child: Wrap(spacing: 8, runSpacing: 8, children: personality.map((item) => Chip(label: Text(item))).toList()),
           ),
           const SizedBox(height: 8),
@@ -248,11 +289,27 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
             label: const Text('Edit Details'),
           ),
           const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: isSaving ? null : _generateLogo,
-            icon: const Icon(Icons.auto_awesome),
-            label: const Text('Generate Logo with AI'),
-          ),
+          if (widget.logoPreference == 'ai')
+            OutlinedButton.icon(
+              onPressed: isSaving ? null : _generateLogo,
+              icon: const Icon(Icons.auto_awesome),
+              label: const Text('Generate Logo with AI'),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1E7D8),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.check_circle, color: Color(0xFF2A8F6A)),
+                  SizedBox(width: 10),
+                  Expanded(child: Text('Your uploaded logo will be saved with this brand.', style: TextStyle(color: _navy, fontWeight: FontWeight.w600))),
+                ],
+              ),
+            ),
           const SizedBox(height: 12),
           SizedBox(
             height: 56,
