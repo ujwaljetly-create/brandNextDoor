@@ -40,10 +40,7 @@ class AppRouter {
   static final router = GoRouter(
     initialLocation: '/',
     routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const AuthGate(),
-      ),
+      GoRoute(path: '/', builder: (context, state) => const AuthGate()),
       GoRoute(
         path: '/settings',
         builder: (context, state) {
@@ -53,10 +50,7 @@ class AppRouter {
       ),
       GoRoute(
         path: '/listing-details',
-        builder: (context, state) {
-          final listing = state.extra as ListingModel;
-          return ListingDetailsScreen(listing: listing);
-        },
+        builder: (context, state) => ListingDetailsScreen(listing: state.extra as ListingModel),
       ),
       GoRoute(
         path: '/seller-storefront',
@@ -70,70 +64,34 @@ class AppRouter {
       ),
       GoRoute(
         path: '/place-order',
-        builder: (context, state) {
-          final listing = state.extra as ListingModel;
-          return PlaceOrderScreen(listing: listing);
-        },
+        builder: (context, state) => PlaceOrderScreen(listing: state.extra as ListingModel),
       ),
       GoRoute(
         path: '/review-order',
-        builder: (context, state) {
-          final order = state.extra as OrderModel;
-          return ReviewOrderScreen(order: order);
-        },
+        builder: (context, state) => ReviewOrderScreen(order: state.extra as OrderModel),
       ),
       GoRoute(
         path: '/seller-order-details',
-        builder: (context, state) {
-          final order = state.extra as OrderModel;
-          return SellerOrderDetailsScreen(order: order);
-        },
+        builder: (context, state) => SellerOrderDetailsScreen(order: state.extra as OrderModel),
       ),
-      GoRoute(
-        path: '/ai-listing-builder',
-        builder: (context, state) => const AIListingBuilderScreen(),
-      ),
+      GoRoute(path: '/ai-listing-builder', builder: (context, state) => const AIListingBuilderScreen()),
       GoRoute(
         path: '/ai-listing-result',
-        builder: (context, state) {
-          final listing = state.extra as GeneratedListingModel;
-          return AIListingResultScreen(listing: listing);
-        },
+        builder: (context, state) => AIListingResultScreen(listing: state.extra as GeneratedListingModel),
       ),
       GoRoute(
         path: '/edit-listing',
-        builder: (context, state) {
-          final listing = state.extra as ListingModel;
-          return EditListingScreen(listing: listing);
-        },
+        builder: (context, state) => EditListingScreen(listing: state.extra as ListingModel),
       ),
-      GoRoute(
-        path: '/marketplace',
-        builder: (context, state) => const BuyerMarketplaceScreen(),
-      ),
+      GoRoute(path: '/marketplace', builder: (context, state) => const BuyerMarketplaceScreen()),
       GoRoute(
         path: '/edit-brand',
-        builder: (context, state) {
-          final brand = state.extra as Map<String, dynamic>;
-          return EditBrandScreen(brand: brand);
-        },
+        builder: (context, state) => EditBrandScreen(brand: state.extra as Map<String, dynamic>),
       ),
-      GoRoute(
-        path: '/welcome',
-        builder: (context, state) => const WelcomeScreen(),
-      ),
-      GoRoute(
-        path: '/account-type',
-        builder: (context, state) => const AccountTypeScreen(),
-      ),
-      GoRoute(
-        path: '/seller-dashboard',
-        builder: (context, state) => const SellerDashboardScreen(),
-      ),
-      GoRoute(
-        path: '/seller-brand',
-        builder: (context, state) => const SellerBrandScreen(),
-      ),
+      GoRoute(path: '/welcome', builder: (context, state) => const WelcomeScreen()),
+      GoRoute(path: '/account-type', builder: (context, state) => const AccountTypeScreen()),
+      GoRoute(path: '/seller-dashboard', builder: (context, state) => const SellerDashboardScreen()),
+      GoRoute(path: '/seller-brand', builder: (context, state) => const SellerBrandScreen()),
       GoRoute(
         path: '/register',
         builder: (context, state) {
@@ -141,72 +99,41 @@ class AppRouter {
           return RegisterScreen(role: role);
         },
       ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: '/verify-email',
-        builder: (context, state) => const VerifyEmailScreen(),
-      ),
-      GoRoute(
-        path: '/buyer-home',
-        builder: (context, state) => const BuyerHomeScreen(),
-      ),
-      GoRoute(
-        path: '/seller-onboarding',
-        builder: (context, state) => const SellerOnboardingScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(path: '/verify-email', builder: (context, state) => const VerifyEmailScreen()),
+      GoRoute(path: '/buyer-home', builder: (context, state) => const BuyerHomeScreen()),
+      GoRoute(path: '/seller-onboarding', builder: (context, state) => const SellerOnboardingScreen()),
       GoRoute(
         path: '/create-listing',
-        builder: (context, state) {
-          final listing = state.extra as GeneratedListingModel?;
-          return CreateListingScreen(generatedListing: listing);
-        },
+        builder: (context, state) => CreateListingScreen(generatedListing: state.extra as GeneratedListingModel?),
       ),
-      GoRoute(
-        path: '/my-listings',
-        builder: (context, state) => const MyListingsScreen(),
-      ),
-      GoRoute(
-        path: '/buyer-orders',
-        builder: (context, state) => const BuyerOrdersScreen(),
-      ),
-      GoRoute(
-        path: '/seller-orders',
-        builder: (context, state) => const SellerOrdersScreen(),
-      ),
-      GoRoute(
-        path: '/messages',
-        builder: (context, state) => const ConversationsScreen(),
-      ),
-      GoRoute(
-        path: '/brand-profile',
-        builder: (context, state) => const BrandProfileScreen(),
-      ),
-      GoRoute(
-        path: '/ai-brand-builder',
-        builder: (context, state) => const AIBrandBuilderScreen(),
-      ),
+      GoRoute(path: '/my-listings', builder: (context, state) => const MyListingsScreen()),
+      GoRoute(path: '/buyer-orders', builder: (context, state) => const BuyerOrdersScreen()),
+      GoRoute(path: '/seller-orders', builder: (context, state) => const SellerOrdersScreen()),
+      GoRoute(path: '/messages', builder: (context, state) => const ConversationsScreen()),
+      GoRoute(path: '/brand-profile', builder: (context, state) => const BrandProfileScreen()),
+      GoRoute(path: '/ai-brand-builder', builder: (context, state) => const AIBrandBuilderScreen()),
       GoRoute(
         path: '/brand-generation-result',
-        builder: (context, state) {
-          final brand = state.extra as GeneratedBrandModel;
-          return BrandGenerationResultScreen(brand: brand);
-        },
+        builder: (context, state) => BrandGenerationResultScreen(brand: state.extra as GeneratedBrandModel),
       ),
       GoRoute(
         path: '/ai-logo-generation',
-        builder: (context, state) {
-          final brand = state.extra as GeneratedBrandModel;
-          return AILogoGenerationScreen(brand: brand);
-        },
+        builder: (context, state) => AILogoGenerationScreen(brand: state.extra as GeneratedBrandModel),
       ),
       GoRoute(
         path: '/ai-brand-studio',
         builder: (context, state) {
-          final brand = state.extra as GeneratedBrandModel;
-          return AIBrandStudioScreen(brand: brand);
+          final extra = state.extra;
+          if (extra is GeneratedBrandModel) {
+            return AIBrandStudioScreen(brand: extra);
+          }
+          final data = extra as Map<String, dynamic>;
+          return AIBrandStudioScreen(
+            brand: data['brand'] as GeneratedBrandModel,
+            logoPreference: (data['logoPreference'] ?? 'ai').toString(),
+            logoPath: data['logoPath']?.toString(),
+          );
         },
       ),
     ],
