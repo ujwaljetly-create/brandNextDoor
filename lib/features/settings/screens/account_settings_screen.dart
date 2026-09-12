@@ -186,26 +186,127 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       );
 
   Widget _buyerSettings() {
+    final name = _nameController.text.trim().isEmpty ? 'Buyer' : _nameController.text.trim();
     final email = _firebaseUser?.email ?? _appUser?.email ?? '';
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Buyer Settings')),
+      backgroundColor: _cream,
+      appBar: AppBar(
+        backgroundColor: _cream,
+        elevation: 0,
+        title: const Text('Profile', style: TextStyle(color: _navy, fontFamily: 'serif', fontWeight: FontWeight.w700)),
+        actions: [
+          IconButton(
+            onPressed: _saveName,
+            icon: const Icon(Icons.settings_outlined, color: _navy),
+          ),
+        ],
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(18, 8, 18, 30),
         children: [
-          TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Name', prefixIcon: Icon(Icons.person_outline))),
-          const SizedBox(height: 12),
-          TextFormField(initialValue: email, enabled: false, decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined))),
-          const SizedBox(height: 14),
-          ElevatedButton(onPressed: _isSaving ? null : _saveName, child: Text(_isSaving ? 'Saving...' : 'Save Changes')),
-          const SizedBox(height: 22),
-          ListTile(leading: const Icon(Icons.lock_reset), title: const Text('Reset Password'), trailing: const Icon(Icons.chevron_right), onTap: _sendPasswordReset),
-          ListTile(leading: const Icon(Icons.shopping_bag_outlined), title: const Text('My Orders'), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/buyer-orders')),
-          ListTile(leading: const Icon(Icons.store_mall_directory_outlined), title: const Text('Marketplace'), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/marketplace')),
-          ListTile(leading: const Icon(Icons.chat_bubble_outline), title: const Text('Messages'), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/messages')),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 38,
+                backgroundColor: const Color(0xFFE6D3B5),
+                child: Text(
+                  name.isNotEmpty ? name[0].toUpperCase() : 'B',
+                  style: const TextStyle(color: _navy, fontFamily: 'serif', fontSize: 26, fontWeight: FontWeight.w700),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: const TextStyle(color: _navy, fontFamily: 'serif', fontSize: 23, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    Text(email, style: const TextStyle(color: Color(0xFF7A858B), fontSize: 12)),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: _editBuyerName,
+                icon: const Icon(Icons.edit_outlined, color: _navy),
+              ),
+            ],
+          ),
           const SizedBox(height: 24),
-          OutlinedButton.icon(onPressed: _signOut, icon: const Icon(Icons.logout), label: const Text('Sign Out')),
+          _buyerItem(Icons.receipt_long_outlined, 'My Orders', () => context.push('/buyer-orders')),
+          _buyerItem(Icons.favorite_border, 'Saved Items', () => context.push('/marketplace')),
+          _buyerItem(Icons.star_border, 'My Reviews', () => context.push('/buyer-orders')),
+          _buyerItem(Icons.location_on_outlined, 'My Addresses', () => _showMessage('Address management is coming next.')),
+          _buyerItem(Icons.credit_card_outlined, 'Payment Methods', () => _showMessage('Payment methods will be available with checkout integration.')),
+          _buyerItem(Icons.storefront_outlined, 'Sell on Brand Next Door', () => context.push('/account-type')),
+          _buyerItem(Icons.lock_reset, 'Reset Password', _sendPasswordReset),
+          _buyerItem(Icons.help_outline, 'Help & Support', () => _showMessage('Help & Support is coming next.')),
+          const SizedBox(height: 14),
+          ListTile(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            tileColor: Colors.white,
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text('Sign Out', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+            onTap: _signOut,
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: _gold,
+        foregroundColor: Colors.white,
+        onPressed: () => context.push('/account-type'),
+        child: const Icon(Icons.add),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: NavigationBar(
+        backgroundColor: Colors.white,
+        selectedIndex: 3,
+        onDestinationSelected: (index) {
+          if (index == 0) context.go('/buyer-home');
+          if (index == 1) context.push('/marketplace');
+          if (index == 2) context.push('/buyer-orders');
+        },
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
+          NavigationDestination(icon: Icon(Icons.search), label: 'Explore'),
+          NavigationDestination(icon: Icon(Icons.favorite_border), label: 'Orders'),
+          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );
   }
+
+  Future<void> _editBuyerName() async {
+    final controller = TextEditingController(text: _nameController.text);
+    final value = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Edit name'),
+        content: TextField(controller: controller, decoration: const InputDecoration(labelText: 'Name')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, controller.text.trim()), child: const Text('Save')),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (value == null || value.isEmpty) return;
+    _nameController.text = value;
+    await _saveName();
+  }
+
+  Widget _buyerItem(IconData icon, String title, VoidCallback onTap) => Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE6DED2)),
+        ),
+        child: ListTile(
+          leading: Icon(icon, color: _navy),
+          title: Text(title, style: const TextStyle(color: _navy, fontWeight: FontWeight.w600)),
+          trailing: const Icon(Icons.chevron_right, color: Color(0xFF8C969B)),
+          onTap: onTap,
+        ),
+      );
 }
