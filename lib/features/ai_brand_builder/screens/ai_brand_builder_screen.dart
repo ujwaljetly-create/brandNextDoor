@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../services/ai_brand_service.dart';
 
@@ -23,6 +26,7 @@ class _AIBrandBuilderScreenState extends State<AIBrandBuilderScreen> {
   bool useAi = true;
   bool isLoading = false;
   String logoChoice = 'ai';
+  File? selectedLogo;
 
   final businessTypes = const [
     'Fashion & Accessories',
@@ -51,6 +55,13 @@ class _AIBrandBuilderScreenState extends State<AIBrandBuilderScreen> {
       return;
     }
 
+    if (logoChoice == 'upload' && selectedLogo == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Choose a logo image or switch to AI generated logo.')),
+      );
+      return;
+    }
+
     setState(() => isLoading = true);
 
     try {
@@ -59,13 +70,20 @@ Business name: ${businessNameController.text.trim()}
 Business type: $businessType
 Description: ${descriptionController.text.trim()}
 Location: ${locationController.text.trim()}
-Logo preference: ${logoChoice == 'ai' ? 'AI generated logo' : 'Seller will upload logo'}
+Logo preference: ${logoChoice == 'ai' ? 'AI generated logo' : 'Seller provided logo'}
 Create a complete, premium local brand identity.
 ''';
 
       final result = await AIBrandService().generateBrand(businessInfo: info);
       if (!mounted) return;
-      context.push('/ai-brand-studio', extra: result);
+      context.push(
+        '/ai-brand-studio',
+        extra: {
+          'brand': result,
+          'logoPreference': logoChoice,
+          'logoPath': selectedLogo?.path,
+        },
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -121,12 +139,24 @@ Create a complete, premium local brand identity.
                               color: const Color(0xFFE9DDCB),
                               shape: BoxShape.circle,
                               border: Border.all(color: const Color(0xFFD6C4A9)),
+                              image: selectedLogo != null
+                                  ? DecorationImage(
+                                      image: FileImage(selectedLogo!),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
                             ),
-                            child: const Icon(Icons.add_a_photo_outlined, color: _navy, size: 34),
+                            child: selectedLogo == null
+                                ? const Icon(Icons.add_a_photo_outlined, color: _navy, size: 34)
+                                : null,
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            logoChoice == 'ai' ? 'AI will create your logo' : 'Upload your logo',
+                            logoChoice == 'ai'
+                                ? 'AI will create your logo'
+                                : selectedLogo == null
+                                    ? 'Upload your logo'
+                                    : 'Logo selected',
                             style: const TextStyle(color: _navy, fontWeight: FontWeight.w600),
                           ),
                           TextButton(
@@ -208,7 +238,10 @@ Create a complete, premium local brand identity.
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: useAi ? generateBrand : () => context.push('/brand-profile'),
-                  child: Text(useAi ? 'Build My Brand' : 'Continue Manually', style: const TextStyle(fontWeight: FontWeight.w700)),
+                  child: Text(
+                    useAi ? 'Build My Brand' : 'Continue Manually',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
             ),
@@ -310,7 +343,7 @@ Create a complete, premium local brand identity.
               ListTile(
                 leading: const Icon(Icons.upload_file_outlined),
                 title: const Text('Upload it myself'),
-                subtitle: const Text('You can upload your existing logo from My Brand.'),
+                subtitle: const Text('Choose an existing logo from your device.'),
                 onTap: () => Navigator.pop(context, 'upload'),
               ),
             ],
@@ -318,7 +351,22 @@ Create a complete, premium local brand identity.
         ),
       ),
     );
-    if (choice != null) setState(() => logoChoice = choice);
+
+    if (choice == null) return;
+    if (choice == 'ai') {
+      setState(() {
+        logoChoice = 'ai';
+        selectedLogo = null;
+      });
+      return;
+    }
+
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+    setState(() {
+      logoChoice = 'upload';
+      selectedLogo = File(picked.path);
+    });
   }
 }
 
