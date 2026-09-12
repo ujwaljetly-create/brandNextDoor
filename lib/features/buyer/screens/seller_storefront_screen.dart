@@ -6,6 +6,7 @@ import '../../brand/services/brand_service.dart';
 import '../../listings/services/listing_service.dart';
 import '../../reviews/services/review_service.dart';
 import '../../reviews/widgets/reviews_preview.dart';
+import '../widgets/product_card.dart';
 
 class SellerStorefrontScreen extends StatefulWidget {
   final String sellerId;
@@ -18,11 +19,14 @@ class SellerStorefrontScreen extends StatefulWidget {
   });
 
   @override
-  State<SellerStorefrontScreen> createState() =>
-      _SellerStorefrontScreenState();
+  State<SellerStorefrontScreen> createState() => _SellerStorefrontScreenState();
 }
 
 class _SellerStorefrontScreenState extends State<SellerStorefrontScreen> {
+  static const _navy = Color(0xFF0C2430);
+  static const _gold = Color(0xFFC99245);
+  static const _cream = Color(0xFFF8F3EA);
+
   bool isLoading = true;
   Map<String, dynamic>? brand;
 
@@ -37,222 +41,185 @@ class _SellerStorefrontScreenState extends State<SellerStorefrontScreen> {
       final result = widget.brandId.isNotEmpty
           ? await BrandService().getBrand(widget.brandId)
           : null;
-
       if (!mounted) return;
-
       setState(() {
         brand = result;
         isLoading = false;
       });
     } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final brandName = (brand?['brandName'] ?? 'Seller').toString();
+    final brandName = (brand?['brandName'] ?? 'Local Brand').toString();
     final tagline = (brand?['tagline'] ?? '').toString();
     final description = (brand?['description'] ?? '').toString();
     final logoUrl = (brand?['logoUrl'] ?? '').toString();
+    final bannerUrl = (brand?['bannerUrl'] ?? '').toString();
+    final city = (brand?['city'] ?? '').toString();
     final rating = (brand?['rating'] ?? 0).toDouble();
-    final totalReviews = (brand?['totalReviews'] ?? 0) as num;
+    final reviews = (brand?['totalReviews'] ?? 0) as num;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(brandName),
-      ),
+      backgroundColor: _cream,
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : StreamBuilder<List<ListingModel>>(
               stream: ListingService().getActiveSellerListings(widget.sellerId),
               builder: (context, snapshot) {
                 final listings = snapshot.data ?? const <ListingModel>[];
-
-                return ListView(
-                  padding: const EdgeInsets.all(20),
-                  children: [
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
+                return CustomScrollView(
+                  slivers: [
+                    SliverAppBar(
+                      pinned: true,
+                      expandedHeight: 240,
+                      backgroundColor: _cream,
+                      leading: IconButton(
+                        onPressed: () => context.pop(),
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      ),
+                      actions: [
+                        IconButton(onPressed: () {}, icon: const Icon(Icons.share_outlined, color: Colors.white)),
+                      ],
+                      flexibleSpace: FlexibleSpaceBar(
+                        background: Stack(
+                          fit: StackFit.expand,
                           children: [
-                            CircleAvatar(
-                              radius: 44,
-                              backgroundImage: logoUrl.isNotEmpty
-                                  ? NetworkImage(logoUrl)
-                                  : null,
-                              child: logoUrl.isEmpty
-                                  ? const Icon(Icons.storefront, size: 40)
-                                  : null,
-                            ),
-                            const SizedBox(height: 14),
-                            Text(
-                              brandName,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            if (rating > 0) ...[
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.star, color: Colors.amber),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    rating.toStringAsFixed(1),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
+                            bannerUrl.isNotEmpty
+                                ? Image.network(bannerUrl, fit: BoxFit.cover)
+                                : Container(
+                                    decoration: const BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [Color(0xFF6A4D35), Color(0xFFC7A57A)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text('(${totalReviews.toInt()} reviews)'),
-                                ],
-                              ),
-                            ],
-                            if (tagline.isNotEmpty) ...[
-                              const SizedBox(height: 6),
-                              Text(
-                                tagline,
+                            Container(color: Colors.black.withValues(alpha: .15)),
+                            Center(
+                              child: Text(
+                                brandName.toUpperCase(),
                                 textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodyMedium,
+                                style: const TextStyle(color: Colors.white, fontFamily: 'serif', fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: 2),
                               ),
-                            ],
-                            if (description.isNotEmpty) ...[
-                              const SizedBox(height: 14),
-                              Text(
-                                description,
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
+                            ),
                           ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 18),
-                    ReviewsPreview(
-                      title: 'Seller Reviews',
-                      reviews: ReviewService().getSellerReviews(widget.sellerId),
-                      sellerRating: true,
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'Available Listings',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 30),
+                        child: Column(
+                          children: [
+                            Transform.translate(
+                              offset: const Offset(0, -38),
+                              child: CircleAvatar(
+                                radius: 46,
+                                backgroundColor: Colors.white,
+                                backgroundImage: logoUrl.isNotEmpty ? NetworkImage(logoUrl) : null,
+                                child: logoUrl.isEmpty ? const Text('BN', style: TextStyle(color: _navy, fontFamily: 'serif', fontSize: 24)) : null,
+                              ),
                             ),
-                          ),
-                        ),
-                        Text('${listings.length}'),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    if (snapshot.connectionState == ConnectionState.waiting &&
-                        listings.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    else if (listings.isEmpty)
-                      const Card(
-                        child: Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Text(
-                            'This seller has no active listings right now.',
-                          ),
-                        ),
-                      )
-                    else
-                      ...listings.map(
-                        (listing) => Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(18),
-                            onTap: () {
-                              context.push(
-                                '/listing-details',
-                                extra: listing,
-                              );
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Row(
+                            Transform.translate(
+                              offset: const Offset(0, -24),
+                              child: Column(
                                 children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: listing.images.isNotEmpty
-                                        ? Image.network(
-                                            listing.images.first,
-                                            width: 84,
-                                            height: 84,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) =>
-                                                _listingPlaceholder(),
-                                          )
-                                        : _listingPlaceholder(),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Flexible(child: Text(brandName.toUpperCase(), textAlign: TextAlign.center, style: const TextStyle(color: _navy, fontFamily: 'serif', fontSize: 24, fontWeight: FontWeight.w700))),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(color: const Color(0xFFDDF2E7), borderRadius: BorderRadius.circular(16)),
+                                        child: const Text('✓ Verified Local Brand', style: TextStyle(color: Color(0xFF236948), fontSize: 10, fontWeight: FontWeight.w700)),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          listing.title,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(listing.category),
-                                        const SizedBox(height: 6),
-                                        Row(
-                                          children: [
-                                            Text(
-                                              '\$${listing.currentPrice.toStringAsFixed(2)}',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 17,
-                                              ),
-                                            ),
-                                            if (listing.rating > 0) ...[
-                                              const Spacer(),
-                                              const Icon(
-                                                Icons.star,
-                                                size: 16,
-                                                color: Colors.amber,
-                                              ),
-                                              const SizedBox(width: 3),
-                                              Text(
-                                                listing.rating
-                                                    .toStringAsFixed(1),
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                      ],
-                                    ),
+                                  if (city.isNotEmpty) ...[
+                                    const SizedBox(height: 6),
+                                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.location_on_outlined, size: 16), const SizedBox(width: 4), Text(city)]),
+                                  ],
+                                  if (description.isNotEmpty) ...[
+                                    const SizedBox(height: 12),
+                                    Text(description, textAlign: TextAlign.center, style: const TextStyle(color: _navy, height: 1.45)),
+                                  ] else if (tagline.isNotEmpty) ...[
+                                    const SizedBox(height: 12),
+                                    Text(tagline, textAlign: TextAlign.center, style: const TextStyle(color: _navy)),
+                                  ],
+                                  const SizedBox(height: 16),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      _metric(rating > 0 ? rating.toStringAsFixed(1) : 'New', 'Rating'),
+                                      _metric(reviews.toInt().toString(), 'Reviews'),
+                                      _metric(listings.length.toString(), 'Products'),
+                                    ],
                                   ),
-                                  const Icon(Icons.chevron_right),
+                                  const SizedBox(height: 18),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: FilledButton(
+                                          style: FilledButton.styleFrom(backgroundColor: _navy),
+                                          onPressed: () {},
+                                          child: const Text('Follow'),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          onPressed: () => context.push('/messages'),
+                                          icon: const Icon(Icons.chat_bubble_outline),
+                                          label: const Text('Message'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ),
-                          ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: const [
+                                Expanded(child: _StoreTab('Products', true)),
+                                Expanded(child: _StoreTab('About', false)),
+                                Expanded(child: _StoreTab('Reviews', false)),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            if (listings.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.all(30),
+                                child: Text('No active products right now.'),
+                              )
+                            else
+                              GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: listings.length,
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  childAspectRatio: .72,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                ),
+                                itemBuilder: (_, i) => ProductCard(listing: listings[i]),
+                              ),
+                            const SizedBox(height: 22),
+                            ReviewsPreview(
+                              title: 'Seller Reviews',
+                              reviews: ReviewService().getSellerReviews(widget.sellerId),
+                              sellerRating: true,
+                            ),
+                          ],
                         ),
                       ),
+                    ),
                   ],
                 );
               },
@@ -260,12 +227,28 @@ class _SellerStorefrontScreenState extends State<SellerStorefrontScreen> {
     );
   }
 
-  Widget _listingPlaceholder() {
-    return Container(
-      width: 84,
-      height: 84,
-      color: Colors.grey.shade200,
-      child: const Icon(Icons.image_outlined),
+  Widget _metric(String value, String label) => Column(
+        children: [
+          Text(value, style: const TextStyle(color: _navy, fontWeight: FontWeight.w800, fontSize: 18)),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(color: Color(0xFF7A858B), fontSize: 11)),
+        ],
+      );
+}
+
+class _StoreTab extends StatelessWidget {
+  final String label;
+  final bool active;
+  const _StoreTab(this.label, this.active);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(label, style: TextStyle(fontWeight: active ? FontWeight.w800 : FontWeight.w500)),
+        const SizedBox(height: 8),
+        Container(height: 2, color: active ? const Color(0xFFC99245) : Colors.transparent),
+      ],
     );
   }
 }
