@@ -6,122 +6,126 @@ import '../../../models/listing_model.dart';
 class ProductCard extends StatelessWidget {
   final ListingModel listing;
 
-  const ProductCard({
-    super.key,
-    required this.listing,
-  });
+  const ProductCard({super.key, required this.listing});
+
+  static const _navy = Color(0xFF0C2430);
+  static const _gold = Color(0xFFC99245);
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
       child: InkWell(
-        onTap: () {
-          context.push(
-            '/listing-details',
-            extra: listing,
-          );
-        },
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  listing.images.isNotEmpty
-                      ? Image.network(
-                          listing.images.first,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) {
-                            return const Center(
-                              child: Icon(Icons.broken_image_outlined),
-                            );
-                          },
-                        )
-                      : const Center(
-                          child: Icon(Icons.image_outlined),
-                        ),
-                  if (listing.hasActiveDeal)
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => context.push('/listing-details', extra: listing),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFE9E1D5)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                      child: listing.images.isNotEmpty
+                          ? Image.network(
+                              listing.images.first,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _placeholder(),
+                            )
+                          : _placeholder(),
+                    ),
                     Positioned(
-                      left: 8,
                       top: 8,
+                      right: 8,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 5,
-                        ),
+                        width: 32,
+                        height: 32,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF7B61FF),
-                          borderRadius: BorderRadius.circular(20),
+                          color: Colors.white.withValues(alpha: .9),
+                          shape: BoxShape.circle,
                         ),
-                        child: Text(
-                          '${listing.discountPercent}% OFF',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
+                        child: const Icon(Icons.favorite_border, size: 19, color: _navy),
                       ),
                     ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    listing.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Text(
-                        '\$${listing.currentPrice.toStringAsFixed(2)}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      if (listing.hasActiveDeal) ...[
-                        const SizedBox(width: 6),
-                        Flexible(
+                    if (listing.hasActiveDeal)
+                      Positioned(
+                        left: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: _gold,
+                            borderRadius: BorderRadius.circular(18),
+                          ),
                           child: Text(
-                            '\$${listing.price.toStringAsFixed(2)}',
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  decoration: TextDecoration.lineThrough,
-                                ),
+                            '${listing.discountPercent}% OFF',
+                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800),
                           ),
                         ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      if (listing.rating > 0) ...[
-                        const Icon(Icons.star, size: 15, color: Colors.amber),
-                        const SizedBox(width: 3),
-                        Text(listing.rating.toStringAsFixed(1)),
-                        const SizedBox(width: 4),
-                        Text('(${listing.reviewCount})'),
-                      ] else
-                        const Text('New'),
-                      const Spacer(),
-                      if (listing.soldCount > 0)
-                        Text('${listing.soldCount} sold'),
-                    ],
-                  ),
-                ],
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.all(11),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (listing.city.isNotEmpty)
+                      Text(
+                        listing.city.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Color(0xFF7E898F), fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: .8),
+                      ),
+                    Text(
+                      listing.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: _navy, fontSize: 14, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        Text(
+                          '\$${listing.currentPrice.toStringAsFixed(0)}',
+                          style: const TextStyle(color: _navy, fontSize: 15, fontWeight: FontWeight.w800),
+                        ),
+                        if (listing.hasActiveDeal) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            '\$${listing.price.toStringAsFixed(0)}',
+                            style: const TextStyle(color: Colors.grey, fontSize: 11, decoration: TextDecoration.lineThrough),
+                          ),
+                        ],
+                        const Spacer(),
+                        if (listing.rating > 0) ...[
+                          const Icon(Icons.star, size: 13, color: _gold),
+                          const SizedBox(width: 2),
+                          Text(listing.rating.toStringAsFixed(1), style: const TextStyle(fontSize: 11)),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  Widget _placeholder() => Container(
+        color: const Color(0xFFF1ECE4),
+        child: const Center(child: Icon(Icons.image_outlined, color: _navy, size: 38)),
+      );
 }
