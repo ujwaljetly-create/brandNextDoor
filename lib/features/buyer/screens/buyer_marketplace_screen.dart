@@ -14,19 +14,35 @@ class BuyerMarketplaceScreen extends StatefulWidget {
 
 class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
   static const _navy = Color(0xFF0C2430);
-  static const _gold = Color(0xFFC99245);
   static const _cream = Color(0xFFF8F3EA);
 
   final searchController = TextEditingController();
   String searchText = '';
   String selectedCategory = 'All';
+  String mode = '';
 
-  final categories = const ['All', 'Fashion', 'Home Decor', 'Beauty', 'Food', 'Services', 'Electronics'];
+  final categories = const [
+    'All',
+    'Fashion',
+    'Food',
+    'Home Decor',
+    'Beauty',
+    'Services',
+    'Electronics',
+    'Art & Handmade',
+    'Jewelry',
+    'Kids',
+    'Health & Wellness',
+    'Gifts',
+    'Pets',
+  ];
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final category = GoRouterState.of(context).uri.queryParameters['category'];
+    final uri = GoRouterState.of(context).uri;
+    final category = uri.queryParameters['category'];
+    mode = uri.queryParameters['mode'] ?? '';
     if (category != null && categories.contains(category)) {
       selectedCategory = category;
     }
@@ -38,6 +54,55 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
     super.dispose();
   }
 
+  bool _matchesCategory(ListingModel listing) {
+    if (selectedCategory == 'All') return true;
+    final actual = listing.category.trim().toLowerCase();
+    final selected = selectedCategory.toLowerCase();
+    if (selected == 'fashion') {
+      return actual.contains('fashion') || actual.contains('women') || actual.contains('men');
+    }
+    if (selected == 'home decor') {
+      return actual.contains('home') || actual.contains('decor');
+    }
+    return actual == selected || actual.contains(selected);
+  }
+
+  Future<void> _showMoreCategories() async {
+    final value = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('All Categories', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _navy)),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: categories.map((category) {
+                  final active = selectedCategory == category;
+                  return ChoiceChip(
+                    selected: active,
+                    label: Text(category),
+                    selectedColor: _navy,
+                    labelStyle: TextStyle(color: active ? Colors.white : _navy),
+                    onSelected: (_) => Navigator.pop(context, category),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (value != null && mounted) setState(() => selectedCategory = value);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -45,10 +110,10 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
       appBar: AppBar(
         backgroundColor: _cream,
         elevation: 0,
-        title: const Text('Explore', style: TextStyle(color: _navy, fontFamily: 'serif', fontSize: 28, fontWeight: FontWeight.w700)),
-        actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.search, color: _navy)),
-        ],
+        title: Text(
+          mode == 'interest' ? 'Based on Your Interest' : 'Explore',
+          style: const TextStyle(color: _navy, fontFamily: 'serif', fontSize: 28, fontWeight: FontWeight.w700),
+        ),
       ),
       body: StreamBuilder<List<ListingModel>>(
         stream: ListingService().getMarketplaceListings(),
@@ -57,29 +122,40 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           final source = snapshot.data ?? const <ListingModel>[];
-          final listings = source.where((listing) {
+          var listings = source.where((listing) {
             final q = searchText.trim().toLowerCase();
             final matchSearch = q.isEmpty ||
                 listing.title.toLowerCase().contains(q) ||
                 listing.description.toLowerCase().contains(q) ||
                 listing.category.toLowerCase().contains(q);
-            final matchCategory = selectedCategory == 'All' ||
-                listing.category.toLowerCase().contains(selectedCategory.toLowerCase());
-            return matchSearch && matchCategory;
+            return matchSearch && _matchesCategory(listing);
           }).toList();
+
+          if (mode == 'interest') {
+            listings.sort((a, b) {
+              final rating = b.rating.compareTo(a.rating);
+              if (rating != 0) return rating;
+              return b.soldCount.compareTo(a.soldCount);
+            });
+            listings = listings.take(25).toList();
+          }
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
             children: [
-              const Text('Find amazing brands around you.', style: TextStyle(color: Color(0xFF66747B))),
+              Text(
+                mode == 'interest'
+                    ? 'Top picks shaped by your shopping activity.'
+                    : 'Find amazing brands around you.',
+                style: const TextStyle(color: Color(0xFF66747B)),
+              ),
               const SizedBox(height: 14),
               TextField(
                 controller: searchController,
                 onChanged: (v) => setState(() => searchText = v),
                 decoration: InputDecoration(
-                  hintText: 'Search this area...',
+                  hintText: 'Search products...',
                   prefixIcon: const Icon(Icons.search),
-                  suffixIcon: const Icon(Icons.tune),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
@@ -90,14 +166,22 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
                 height: 40,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  itemCount: categories.length,
+                  itemCount: 7,
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (_, i) {
-                    final active = categories[i] == selectedCategory;
+                    if (i == 6) {
+                      return ActionChip(
+                        avatar: const Icon(Icons.more_horiz, size: 18),
+                        label: const Text('More'),
+                        onPressed: _showMoreCategories,
+                      );
+                    }
+                    final category = categories[i];
+                    final active = category == selectedCategory;
                     return ChoiceChip(
                       selected: active,
-                      label: Text(categories[i]),
-                      onSelected: (_) => setState(() => selectedCategory = categories[i]),
+                      label: Text(category),
+                      onSelected: (_) => setState(() => selectedCategory = category),
                       selectedColor: _navy,
                       labelStyle: TextStyle(color: active ? Colors.white : _navy),
                       backgroundColor: Colors.white,
@@ -106,12 +190,15 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
                 ),
               ),
               const SizedBox(height: 22),
-              _heading('Just around the corner', 'Beautiful finds close to home.'),
+              Text(
+                mode == 'interest' ? 'Recommended for you' : 'Just around the corner',
+                style: const TextStyle(color: _navy, fontFamily: 'serif', fontSize: 22, fontWeight: FontWeight.w700),
+              ),
               const SizedBox(height: 12),
               if (listings.isEmpty)
                 const Padding(
                   padding: EdgeInsets.all(36),
-                  child: Center(child: Text('No products match your search.')),
+                  child: Center(child: Text('No products match this filter.')),
                 )
               else
                 GridView.builder(
@@ -126,55 +213,26 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
                   ),
                   itemBuilder: (_, i) => ProductCard(listing: listings[i]),
                 ),
-              const SizedBox(height: 24),
-              _heading('New brands near you', 'Recently joined independent businesses.'),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 210,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: source.take(6).length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 12),
-                  itemBuilder: (_, i) => SizedBox(width: 160, child: ProductCard(listing: source[i])),
-                ),
-              ),
             ],
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: _gold,
-        foregroundColor: Colors.white,
-        onPressed: () => context.push('/account-type'),
-        child: const Icon(Icons.add),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: NavigationBar(
         backgroundColor: Colors.white,
         selectedIndex: 1,
         onDestinationSelected: (index) {
           if (index == 0) context.go('/buyer-home');
+          if (index == 1) return;
           if (index == 2) context.push('/buyer-orders');
           if (index == 3) context.push('/settings?role=buyer');
         },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
           NavigationDestination(icon: Icon(Icons.search), selectedIcon: Icon(Icons.search), label: 'Explore'),
-          NavigationDestination(icon: Icon(Icons.favorite_border), label: 'Orders'),
+          NavigationDestination(icon: Icon(Icons.receipt_long_outlined), label: 'Orders'),
           NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
       ),
-    );
-  }
-
-  Widget _heading(String title, String subtitle) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: const TextStyle(color: _navy, fontFamily: 'serif', fontSize: 22, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 3),
-        Text(subtitle, style: const TextStyle(color: Color(0xFF7A858B), fontSize: 12)),
-      ],
     );
   }
 }
