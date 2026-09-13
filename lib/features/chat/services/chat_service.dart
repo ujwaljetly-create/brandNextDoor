@@ -12,6 +12,7 @@ class ChatService {
     required String brandId,
     required String brandName,
     required String brandLogoUrl,
+    required String buyerName,
     String listingId = '',
     String listingTitle = '',
   }) async {
@@ -22,6 +23,7 @@ class ChatService {
       'chatId': chatId,
       'participants': [buyerId, sellerId],
       'buyerId': buyerId,
+      'buyerName': buyerName,
       'sellerId': sellerId,
       'brandId': brandId,
       'brandName': brandName,
