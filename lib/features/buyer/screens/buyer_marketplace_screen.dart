@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../models/listing_model.dart';
 import '../../listings/services/listing_service.dart';
+import '../services/buyer_activity_service.dart';
 import '../widgets/product_card.dart';
 
 class BuyerMarketplaceScreen extends StatefulWidget {
@@ -20,6 +21,7 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
   String searchText = '';
   String selectedCategory = 'All';
   String mode = '';
+  Set<String> viewedCategories = <String>{};
 
   final categories = const [
     'All',
@@ -36,6 +38,19 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
     'Gifts',
     'Pets',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBrowsingHistory();
+  }
+
+  Future<void> _loadBrowsingHistory() async {
+    try {
+      final categories = await BuyerActivityService().getRecentViewedCategories();
+      if (mounted) setState(() => viewedCategories = categories);
+    } catch (_) {}
+  }
 
   @override
   void didChangeDependencies() {
@@ -103,6 +118,18 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
     if (value != null && mounted) setState(() => selectedCategory = value);
   }
 
+  void _sortInterest(List<ListingModel> listings) {
+    int score(ListingModel item) {
+      var result = item.soldCount * 3 + item.rating.round() * 5;
+      if (viewedCategories.contains(item.category.trim().toLowerCase())) {
+        result += 120;
+      }
+      return result;
+    }
+
+    listings.sort((a, b) => score(b).compareTo(score(a)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -132,11 +159,7 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
           }).toList();
 
           if (mode == 'interest') {
-            listings.sort((a, b) {
-              final rating = b.rating.compareTo(a.rating);
-              if (rating != 0) return rating;
-              return b.soldCount.compareTo(a.soldCount);
-            });
+            _sortInterest(listings);
             listings = listings.take(25).toList();
           }
 
@@ -145,7 +168,7 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
             children: [
               Text(
                 mode == 'interest'
-                    ? 'Top picks shaped by your shopping activity.'
+                    ? 'Top 25 picks shaped by your browsing and shopping activity.'
                     : 'Find amazing brands around you.',
                 style: const TextStyle(color: Color(0xFF66747B)),
               ),
