@@ -15,6 +15,7 @@ import '../features/brand/screens/seller_brand_screen.dart';
 import '../features/buyer/screens/buyer_home_screen.dart';
 import '../features/buyer/screens/buyer_marketplace_screen.dart';
 import '../features/buyer/screens/listing_details_screen.dart';
+import '../features/buyer/screens/saved_items_screen.dart';
 import '../features/buyer/screens/seller_storefront_screen.dart';
 import '../features/chat/screens/conversations_screen.dart';
 import '../features/listings/models/generated_listing_model.dart';
@@ -49,6 +50,7 @@ class AppRouter {
           return AccountSettingsScreen(role: role);
         },
       ),
+      GoRoute(path: '/saved-items', builder: (context, state) => const SavedItemsScreen()),
       GoRoute(
         path: '/listing-details',
         builder: (context, state) => ListingDetailsScreen(listing: state.extra as ListingModel),
