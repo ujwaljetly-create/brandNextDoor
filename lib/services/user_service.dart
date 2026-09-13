@@ -9,11 +9,10 @@ class UserService {
   Future<UserModel?> getUser(
     String uid,
   ) async {
-    final doc =
-        await firestore
-            .collection('users')
-            .doc(uid)
-            .get();
+    final doc = await firestore
+        .collection('users')
+        .doc(uid)
+        .get();
 
     if (!doc.exists) {
       return null;
@@ -42,5 +41,17 @@ class UserService {
         );
       },
     );
+  }
+
+  Future<void> updateName({
+    required String uid,
+    required String name,
+  }) async {
+    await firestore
+        .collection('users')
+        .doc(uid)
+        .update({
+      'name': name.trim(),
+    });
   }
 }
