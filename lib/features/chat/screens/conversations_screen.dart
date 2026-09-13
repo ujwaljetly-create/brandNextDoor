@@ -70,11 +70,12 @@ class ConversationsScreen extends StatelessWidget {
                         : (data['buyerId'] ?? '').toString();
                     final peerName = isBuyer
                         ? (data['brandName'] ?? 'Seller').toString()
-                        : 'Buyer';
+                        : (data['buyerName'] ?? 'Buyer').toString();
                     final logoUrl = isBuyer
                         ? (data['brandLogoUrl'] ?? '').toString()
                         : '';
-                    final lastMessage = (data['lastMessage'] ?? 'Start a conversation').toString();
+                    final lastMessage =
+                        (data['lastMessage'] ?? 'Start a conversation').toString();
 
                     return Material(
                       color: Colors.white,
@@ -89,7 +90,9 @@ class ConversationsScreen extends StatelessWidget {
                               logoUrl.isNotEmpty ? NetworkImage(logoUrl) : null,
                           child: logoUrl.isEmpty
                               ? Icon(
-                                  isBuyer ? Icons.storefront_outlined : Icons.person_outline,
+                                  isBuyer
+                                      ? Icons.storefront_outlined
+                                      : Icons.person_outline,
                                   color: _navy,
                                 )
                               : null,
