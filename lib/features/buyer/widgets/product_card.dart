@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../models/listing_model.dart';
+import '../services/buyer_activity_service.dart';
 
 class ProductCard extends StatelessWidget {
   final ListingModel listing;
@@ -18,7 +19,14 @@ class ProductCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: () => context.push('/listing-details', extra: listing),
+        onTap: () async {
+          try {
+            await BuyerActivityService().recordListingView(listing);
+          } catch (_) {}
+          if (context.mounted) {
+            context.push('/listing-details', extra: listing);
+          }
+        },
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
