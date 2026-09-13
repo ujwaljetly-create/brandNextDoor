@@ -17,7 +17,7 @@ async function getTokens(uid) {
     .slice(0, 500);
 }
 
-async function saveNotification({ userId, title, body, type, orderId }) {
+async function saveNotification({ userId, title, body, type, orderId, chatId }) {
   if (!userId) return;
 
   await db.collection('notifications').add({
@@ -26,6 +26,7 @@ async function saveNotification({ userId, title, body, type, orderId }) {
     body,
     type,
     orderId: orderId || '',
+    chatId: chatId || '',
     read: false,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
@@ -38,6 +39,7 @@ async function sendToUser({ userId, title, body, data = {} }) {
     body,
     type: data.type || 'order',
     orderId: data.orderId || '',
+    chatId: data.chatId || '',
   });
 
   const tokens = await getTokens(userId);
@@ -139,3 +141,31 @@ exports.notifyBuyerOnOrderStatus = onDocumentUpdated('orders/{orderId}', async (
     },
   });
 });
+
+exports.notifyOnNewChatMessage = onDocumentCreated(
+  'chats/{chatId}/messages/{messageId}',
+  async (event) => {
+    const message = event.data?.data();
+    if (!message || !message.receiverId || !message.senderId) return;
+
+    const chatSnapshot = await db.collection('chats').doc(event.params.chatId).get();
+    const chat = chatSnapshot.data() || {};
+    const receiverIsBuyer = chat.buyerId === message.receiverId;
+    const senderName = receiverIsBuyer
+      ? (chat.brandName || 'Seller')
+      : 'Buyer';
+    const text = String(message.message || 'New message');
+    const preview = text.length > 90 ? `${text.substring(0, 87)}...` : text;
+
+    await sendToUser({
+      userId: message.receiverId,
+      title: `New message from ${senderName}`,
+      body: preview,
+      data: {
+        type: 'chat_message',
+        chatId: event.params.chatId,
+        senderId: message.senderId,
+      },
+    });
+  },
+);
