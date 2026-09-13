@@ -2,15 +2,55 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../models/listing_model.dart';
+import '../../brand/services/brand_service.dart';
 import '../services/buyer_activity_service.dart';
 
-class ProductCard extends StatelessWidget {
+class ProductCard extends StatefulWidget {
   final ListingModel listing;
 
   const ProductCard({super.key, required this.listing});
 
+  @override
+  State<ProductCard> createState() => _ProductCardState();
+}
+
+class _ProductCardState extends State<ProductCard> {
   static const _navy = Color(0xFF0C2430);
   static const _gold = Color(0xFFC99245);
+  static final Map<String, String> _brandCache = {};
+
+  String brandName = '';
+  ListingModel get listing => widget.listing;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBrandName();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProductCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.listing.brandId != widget.listing.brandId) {
+      brandName = '';
+      _loadBrandName();
+    }
+  }
+
+  Future<void> _loadBrandName() async {
+    if (listing.brandId.isEmpty) return;
+    final cached = _brandCache[listing.brandId];
+    if (cached != null) {
+      if (mounted) setState(() => brandName = cached);
+      return;
+    }
+    try {
+      final brand = await BrandService().getBrand(listing.brandId);
+      final name = (brand?['brandName'] ?? '').toString().trim();
+      if (name.isNotEmpty) _brandCache[listing.brandId] = name;
+      if (mounted) setState(() => brandName = name);
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +115,11 @@ class ProductCard extends StatelessWidget {
                           ),
                           child: Text(
                             '${listing.discountPercent}% OFF',
-                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ),
@@ -92,33 +136,66 @@ class ProductCard extends StatelessWidget {
                         listing.city.toUpperCase(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Color(0xFF7E898F), fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: .8),
+                        style: const TextStyle(
+                          color: Color(0xFF7E898F),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: .8,
+                        ),
                       ),
                     Text(
                       listing.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: _navy, fontSize: 14, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        color: _navy,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
+                    if (brandName.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'by $brandName',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF7A858B),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 5),
                     Row(
                       children: [
                         Text(
                           '\$${listing.currentPrice.toStringAsFixed(0)}',
-                          style: const TextStyle(color: _navy, fontSize: 15, fontWeight: FontWeight.w800),
+                          style: const TextStyle(
+                            color: _navy,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                         if (listing.hasActiveDeal) ...[
                           const SizedBox(width: 6),
                           Text(
                             '\$${listing.price.toStringAsFixed(0)}',
-                            style: const TextStyle(color: Colors.grey, fontSize: 11, decoration: TextDecoration.lineThrough),
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 11,
+                              decoration: TextDecoration.lineThrough,
+                            ),
                           ),
                         ],
                         const Spacer(),
                         if (listing.rating > 0) ...[
                           const Icon(Icons.star, size: 13, color: _gold),
                           const SizedBox(width: 2),
-                          Text(listing.rating.toStringAsFixed(1), style: const TextStyle(fontSize: 11)),
+                          Text(
+                            listing.rating.toStringAsFixed(1),
+                            style: const TextStyle(fontSize: 11),
+                          ),
                         ],
                       ],
                     ),
@@ -134,6 +211,8 @@ class ProductCard extends StatelessWidget {
 
   Widget _placeholder() => Container(
         color: const Color(0xFFF1ECE4),
-        child: const Center(child: Icon(Icons.image_outlined, color: _navy, size: 38)),
+        child: const Center(
+          child: Icon(Icons.image_outlined, color: _navy, size: 38),
+        ),
       );
 }
