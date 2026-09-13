@@ -234,7 +234,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           ),
           const SizedBox(height: 24),
           _buyerItem(Icons.receipt_long_outlined, 'My Orders', () => context.push('/buyer-orders')),
-          _buyerItem(Icons.favorite_border, 'Saved Items', () => context.push('/marketplace')),
+          _buyerItem(Icons.favorite_border, 'Saved Items', () => context.push('/saved-items')),
           _buyerItem(Icons.star_border, 'My Reviews', () => context.push('/buyer-orders')),
           _buyerItem(Icons.location_on_outlined, 'My Addresses', () => _showMessage('Address management is coming next.')),
           _buyerItem(Icons.credit_card_outlined, 'Payment Methods', () => _showMessage('Payment methods will be available with checkout integration.')),
@@ -251,13 +251,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: _gold,
-        foregroundColor: Colors.white,
-        onPressed: () => context.push('/account-type'),
-        child: const Icon(Icons.add),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: NavigationBar(
         backgroundColor: Colors.white,
         selectedIndex: 3,
@@ -269,7 +262,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
           NavigationDestination(icon: Icon(Icons.search), label: 'Explore'),
-          NavigationDestination(icon: Icon(Icons.favorite_border), label: 'Orders'),
+          NavigationDestination(icon: Icon(Icons.receipt_long_outlined), label: 'Orders'),
           NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
