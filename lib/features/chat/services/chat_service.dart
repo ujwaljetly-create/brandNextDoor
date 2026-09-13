@@ -12,7 +12,7 @@ class ChatService {
     required String brandId,
     required String brandName,
     required String brandLogoUrl,
-    required String buyerName,
+    String buyerName = 'Buyer',
     String listingId = '',
     String listingTitle = '',
   }) async {
