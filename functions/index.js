@@ -8,16 +8,14 @@ const messaging = admin.messaging();
 
 async function getTokens(uid) {
   if (!uid) return [];
-
   const snapshot = await db.collection('users').doc(uid).get();
   const tokens = snapshot.data()?.fcmTokens;
-
   if (!Array.isArray(tokens)) return [];
   return [...new Set(tokens.filter((token) => typeof token === 'string' && token.length > 0))]
     .slice(0, 500);
 }
 
-async function saveNotification({ userId, title, body, type, orderId, chatId }) {
+async function saveNotification({ userId, title, body, type, orderId, chatId, brandId, listingId }) {
   if (!userId) return;
 
   await db.collection('notifications').add({
@@ -27,6 +25,8 @@ async function saveNotification({ userId, title, body, type, orderId, chatId }) 
     type,
     orderId: orderId || '',
     chatId: chatId || '',
+    brandId: brandId || '',
+    listingId: listingId || '',
     read: false,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
@@ -40,6 +40,8 @@ async function sendToUser({ userId, title, body, data = {} }) {
     type: data.type || 'order',
     orderId: data.orderId || '',
     chatId: data.chatId || '',
+    brandId: data.brandId || '',
+    listingId: data.listingId || '',
   });
 
   const tokens = await getTokens(userId);
@@ -53,16 +55,10 @@ async function sendToUser({ userId, title, body, data = {} }) {
     ),
     android: {
       priority: 'high',
-      notification: {
-        sound: 'default',
-      },
+      notification: { sound: 'default' },
     },
     apns: {
-      payload: {
-        aps: {
-          sound: 'default',
-        },
-      },
+      payload: { aps: { sound: 'default' } },
     },
   });
 
@@ -88,17 +84,33 @@ async function sendToUser({ userId, title, body, data = {} }) {
   }
 }
 
+async function notifyFollowers({ brandId, title, body, type, listingId }) {
+  if (!brandId) return;
+  const followers = await db.collection('brands').doc(brandId).collection('followers').get();
+  await Promise.all(
+    followers.docs.map((doc) =>
+      sendToUser({
+        userId: doc.id,
+        title,
+        body,
+        data: {
+          type,
+          brandId,
+          listingId: listingId || '',
+        },
+      }),
+    ),
+  );
+}
+
 exports.notifySellerOnNewOrder = onDocumentCreated('orders/{orderId}', async (event) => {
   const order = event.data?.data();
   if (!order) return;
 
-  const productTitle = order.productTitle || 'New order';
-  const buyerName = order.buyerName || 'A buyer';
-
   await sendToUser({
     userId: order.sellerId,
     title: 'New order received',
-    body: `${buyerName} ordered ${productTitle}.`,
+    body: `${order.buyerName || 'A buyer'} ordered ${order.productTitle || 'an item'}.`,
     data: {
       type: 'new_order',
       orderId: event.params.orderId,
@@ -110,7 +122,6 @@ exports.notifySellerOnNewOrder = onDocumentCreated('orders/{orderId}', async (ev
 exports.notifyBuyerOnOrderStatus = onDocumentUpdated('orders/{orderId}', async (event) => {
   const before = event.data?.before.data();
   const after = event.data?.after.data();
-
   if (!before || !after || before.status === after.status) return;
   if (after.status === 'cancelled') return;
 
@@ -124,7 +135,6 @@ exports.notifyBuyerOnOrderStatus = onDocumentUpdated('orders/{orderId}', async (
 
   const title = labels[after.status];
   if (!title) return;
-
   let body = after.productTitle || 'Your order status changed.';
   if (after.status === 'rejected' && after.rejectionReason) {
     body = `${body}: ${after.rejectionReason}`;
@@ -151,9 +161,7 @@ exports.notifyOnNewChatMessage = onDocumentCreated(
     const chatSnapshot = await db.collection('chats').doc(event.params.chatId).get();
     const chat = chatSnapshot.data() || {};
     const receiverIsBuyer = chat.buyerId === message.receiverId;
-    const senderName = receiverIsBuyer
-      ? (chat.brandName || 'Seller')
-      : 'Buyer';
+    const senderName = receiverIsBuyer ? (chat.brandName || 'Seller') : 'Buyer';
     const text = String(message.message || 'New message');
     const preview = text.length > 90 ? `${text.substring(0, 87)}...` : text;
 
@@ -166,6 +174,53 @@ exports.notifyOnNewChatMessage = onDocumentCreated(
         chatId: event.params.chatId,
         senderId: message.senderId,
       },
+    });
+  },
+);
+
+exports.notifyFollowersOnNewListing = onDocumentCreated(
+  'listings/{listingId}',
+  async (event) => {
+    const listing = event.data?.data();
+    if (!listing || listing.status !== 'active' || !listing.brandId) return;
+
+    const brandDoc = await db.collection('brands').doc(listing.brandId).get();
+    const brandName = brandDoc.data()?.brandName || 'A seller you follow';
+    await notifyFollowers({
+      brandId: listing.brandId,
+      title: `${brandName} added something new`,
+      body: listing.title || 'A new product is now available.',
+      type: 'seller_new_listing',
+      listingId: event.params.listingId,
+    });
+  },
+);
+
+exports.notifyFollowersOnNewDeal = onDocumentUpdated(
+  'listings/{listingId}',
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!before || !after || !after.brandId) return;
+
+    const becameDeal = after.isHotDeal === true && (
+      before.isHotDeal !== true ||
+      Number(before.dealPrice || 0) !== Number(after.dealPrice || 0) ||
+      String(before.dealEndAt || '') !== String(after.dealEndAt || '')
+    );
+    if (!becameDeal || after.status !== 'active') return;
+
+    const brandDoc = await db.collection('brands').doc(after.brandId).get();
+    const brandName = brandDoc.data()?.brandName || 'A seller you follow';
+    const price = Number(after.dealPrice || 0);
+    const priceText = price > 0 ? ` for $${price.toFixed(2)}` : '';
+
+    await notifyFollowers({
+      brandId: after.brandId,
+      title: `New deal from ${brandName}`,
+      body: `${after.title || 'An item'} is now on deal${priceText}.`,
+      type: 'seller_new_deal',
+      listingId: event.params.listingId,
     });
   },
 );
