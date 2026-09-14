@@ -93,6 +93,22 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
     return result;
   }
 
+  List<String> _quickCategories() {
+    final result = <String>['All'];
+
+    if (selectedCategory != 'All') {
+      result.add(selectedCategory);
+    }
+
+    for (final category in categories) {
+      if (category == 'All' || category == selectedCategory) continue;
+      if (result.length >= 6) break;
+      result.add(category);
+    }
+
+    return result;
+  }
+
   Future<void> _showMoreCategories() async {
     final value = await showModalBottomSheet<String>(
       context: context,
@@ -198,6 +214,8 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
             );
           }
 
+          final quickCategories = _quickCategories();
+
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
             children: [
@@ -225,17 +243,18 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
                 height: 40,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  itemCount: 7,
+                  itemCount: quickCategories.length + 1,
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (_, i) {
-                    if (i == 6) {
+                    if (i == quickCategories.length) {
                       return ActionChip(
                         avatar: const Icon(Icons.more_horiz, size: 18),
                         label: const Text('More'),
                         onPressed: _showMoreCategories,
                       );
                     }
-                    final category = categories[i];
+
+                    final category = quickCategories[i];
                     final active = category == selectedCategory;
                     return ChoiceChip(
                       selected: active,
@@ -308,7 +327,10 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
             icon: Icon(Icons.receipt_long_outlined),
             label: 'Orders',
           ),
-          NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile'),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
         ],
       ),
     );
