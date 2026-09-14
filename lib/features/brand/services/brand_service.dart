@@ -55,15 +55,19 @@ class BrandService {
     required String brandName,
     required String tagline,
     required String description,
+    String? city,
   }) async {
+    final data = <String, dynamic>{
+      'brandName': brandName,
+      'tagline': tagline,
+      'description': description,
+      'updatedAt': DateTime.now().toIso8601String(),
+    };
+    if (city != null) data['city'] = city.trim();
+
     await repository.updateBrand(
       brandId: brandId,
-      data: {
-        'brandName': brandName,
-        'tagline': tagline,
-        'description': description,
-        'updatedAt': DateTime.now().toIso8601String(),
-      },
+      data: data,
     );
   }
 
