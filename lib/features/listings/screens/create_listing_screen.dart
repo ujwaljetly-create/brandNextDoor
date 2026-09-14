@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../models/listing_model.dart';
+import '../../../widgets/city_picker_sheet.dart';
 import '../../brand/services/brand_service.dart';
 import '../models/generated_listing_model.dart';
 import '../services/listing_service.dart';
@@ -43,7 +44,14 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   DateTime? dealEndDate;
   String selectedCategory = 'Fashion';
 
-  final categories = const ['Fashion', 'Food', 'Home Decor', 'Beauty', 'Services', 'Electronics'];
+  final categories = const [
+    'Fashion',
+    'Food',
+    'Home Decor',
+    'Beauty',
+    'Services',
+    'Electronics',
+  ];
   final List<File> selectedImages = [];
 
   @override
@@ -67,6 +75,17 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     } catch (_) {}
   }
 
+  Future<void> _chooseCity() async {
+    final result = await CityPickerSheet.show(
+      context,
+      initialCity: cityController.text.trim(),
+    );
+    if (result != null) {
+      cityController.text = result.city;
+      if (mounted) setState(() {});
+    }
+  }
+
   Future<void> pickImages() async {
     final images = await ImagePicker().pickMultiImage();
     if (images.isEmpty) return;
@@ -88,17 +107,28 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     final price = double.tryParse(priceController.text.trim());
     final dealPrice = double.tryParse(dealPriceController.text.trim()) ?? 0;
     if (price == null || price <= 0) return _message('Enter a valid price.');
+    if (cityController.text.trim().isEmpty) {
+      return _message('Choose the city for this listing.');
+    }
     if (isHotDeal) {
-      if (dealPrice <= 0 || dealPrice >= price) return _message('Deal price must be lower than the regular price.');
-      if (dealStartDate == null || dealEndDate == null) return _message('Choose deal start and end dates.');
-      if (dealEndDate!.isBefore(dealStartDate!)) return _message('Deal end date must be after the start date.');
+      if (dealPrice <= 0 || dealPrice >= price) {
+        return _message('Deal price must be lower than the regular price.');
+      }
+      if (dealStartDate == null || dealEndDate == null) {
+        return _message('Choose deal start and end dates.');
+      }
+      if (dealEndDate!.isBefore(dealStartDate!)) {
+        return _message('Deal end date must be after the start date.');
+      }
     }
 
     setState(() => isLoading = true);
     try {
       final imageUrls = <String>[];
       for (final image in selectedImages) {
-        imageUrls.add(await StorageService().uploadImage(image, 'listing_images'));
+        imageUrls.add(
+          await StorageService().uploadImage(image, 'listing_images'),
+        );
       }
       final user = FirebaseAuth.instance.currentUser;
       final brand = await BrandService().getSellerBrand();
@@ -120,10 +150,25 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         isHotDeal: isHotDeal,
         dealPrice: isHotDeal ? dealPrice : 0,
         dealStartAt: isHotDeal && dealStartDate != null
-            ? Timestamp.fromDate(DateTime(dealStartDate!.year, dealStartDate!.month, dealStartDate!.day))
+            ? Timestamp.fromDate(
+                DateTime(
+                  dealStartDate!.year,
+                  dealStartDate!.month,
+                  dealStartDate!.day,
+                ),
+              )
             : null,
         dealEndAt: isHotDeal && dealEndDate != null
-            ? Timestamp.fromDate(DateTime(dealEndDate!.year, dealEndDate!.month, dealEndDate!.day, 23, 59, 59))
+            ? Timestamp.fromDate(
+                DateTime(
+                  dealEndDate!.year,
+                  dealEndDate!.month,
+                  dealEndDate!.day,
+                  23,
+                  59,
+                  59,
+                ),
+              )
             : null,
         createdAt: Timestamp.now(),
       );
@@ -139,7 +184,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     }
   }
 
-  void _message(String message) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  void _message(String message) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 
   @override
   void dispose() {
@@ -158,8 +204,18 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       appBar: AppBar(
         backgroundColor: _cream,
         elevation: 0,
-        leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Icons.arrow_back, color: _navy)),
-        title: const Text('Add a Product', style: TextStyle(color: _navy, fontFamily: 'serif', fontWeight: FontWeight.w700)),
+        leading: IconButton(
+          onPressed: () => context.pop(),
+          icon: const Icon(Icons.arrow_back, color: _navy),
+        ),
+        title: const Text(
+          'Add a Product',
+          style: TextStyle(
+            color: _navy,
+            fontFamily: 'serif',
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator(color: _gold))
@@ -175,16 +231,37 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   DropdownButtonFormField<String>(
                     value: selectedCategory,
                     decoration: _decoration('Category'),
-                    items: categories.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                    onChanged: (value) => setState(() => selectedCategory = value ?? selectedCategory),
+                    items: categories
+                        .map(
+                          (e) => DropdownMenuItem(value: e, child: Text(e)),
+                        )
+                        .toList(),
+                    onChanged: (value) =>
+                        setState(() => selectedCategory = value ?? selectedCategory),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(child: _field(priceController, 'Price (CAD)', number: true, validator: true)),
-                      const SizedBox(width: 10),
-                      Expanded(child: _field(cityController, 'City', validator: true)),
-                    ],
+                  _field(
+                    priceController,
+                    'Price (CAD)',
+                    number: true,
+                    validator: true,
+                  ),
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: _chooseCity,
+                    borderRadius: BorderRadius.circular(12),
+                    child: IgnorePointer(
+                      child: TextFormField(
+                        controller: cityController,
+                        decoration: _decoration('City').copyWith(
+                          hintText: 'Use GPS or search for a city',
+                          prefixIcon: const Icon(Icons.location_on_outlined),
+                          suffixIcon: const Icon(Icons.map_outlined),
+                        ),
+                        validator: (value) =>
+                            value == null || value.trim().isEmpty ? 'Required' : null,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
@@ -193,18 +270,39 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                     decoration: _decoration('Description'),
                   ),
                   const SizedBox(height: 12),
-                  _switch('Available for local delivery', deliveryAvailable, (v) => setState(() => deliveryAvailable = v)),
-                  _switch('Available for local pickup', pickupAvailable, (v) => setState(() => pickupAvailable = v)),
+                  _switch(
+                    'Available for local delivery',
+                    deliveryAvailable,
+                    (v) => setState(() => deliveryAvailable = v),
+                  ),
+                  _switch(
+                    'Available for local pickup',
+                    pickupAvailable,
+                    (v) => setState(() => pickupAvailable = v),
+                  ),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE6DED2))),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE6DED2)),
+                    ),
                     child: Column(
                       children: [
                         SwitchListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: const Text('Use AI to generate listing', style: TextStyle(color: _navy, fontWeight: FontWeight.w700)),
-                          subtitle: const Text('Let AI write and optimize your product listing.', style: TextStyle(fontSize: 12)),
+                          title: const Text(
+                            'Use AI to generate listing',
+                            style: TextStyle(
+                              color: _navy,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          subtitle: const Text(
+                            'Let AI write and optimize your product listing.',
+                            style: TextStyle(fontSize: 12),
+                          ),
                           value: useAi,
                           activeThumbColor: _gold,
                           onChanged: (v) => setState(() => useAi = v),
@@ -221,26 +319,55 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                         const Divider(),
                         SwitchListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: const Text('Make this a Hot Deal', style: TextStyle(color: _navy, fontWeight: FontWeight.w700)),
-                          subtitle: const Text('Feature this item in Hot deals near me.', style: TextStyle(fontSize: 12)),
+                          title: const Text(
+                            'Make this a Hot Deal',
+                            style: TextStyle(
+                              color: _navy,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          subtitle: const Text(
+                            'Feature this item in Hot deals near me.',
+                            style: TextStyle(fontSize: 12),
+                          ),
                           value: isHotDeal,
                           activeThumbColor: _gold,
                           onChanged: (v) => setState(() => isHotDeal = v),
                         ),
                         if (isHotDeal) ...[
-                          _field(dealPriceController, 'Deal Price', number: true),
+                          _field(
+                            dealPriceController,
+                            'Deal Price',
+                            number: true,
+                          ),
                           const SizedBox(height: 10),
                           Row(
                             children: [
-                              Expanded(child: _dateButton('Start date', dealStartDate, () async {
-                                final date = await _pickDate(dealStartDate);
-                                if (date != null) setState(() => dealStartDate = date);
-                              })),
+                              Expanded(
+                                child: _dateButton(
+                                  'Start date',
+                                  dealStartDate,
+                                  () async {
+                                    final date = await _pickDate(dealStartDate);
+                                    if (date != null) {
+                                      setState(() => dealStartDate = date);
+                                    }
+                                  },
+                                ),
+                              ),
                               const SizedBox(width: 8),
-                              Expanded(child: _dateButton('End date', dealEndDate, () async {
-                                final date = await _pickDate(dealEndDate);
-                                if (date != null) setState(() => dealEndDate = date);
-                              })),
+                              Expanded(
+                                child: _dateButton(
+                                  'End date',
+                                  dealEndDate,
+                                  () async {
+                                    final date = await _pickDate(dealEndDate);
+                                    if (date != null) {
+                                      setState(() => dealEndDate = date);
+                                    }
+                                  },
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -251,9 +378,15 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   SizedBox(
                     height: 56,
                     child: FilledButton(
-                      style: FilledButton.styleFrom(backgroundColor: _gold, foregroundColor: Colors.white),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _gold,
+                        foregroundColor: Colors.white,
+                      ),
                       onPressed: createListing,
-                      child: const Text('List Product', style: TextStyle(fontWeight: FontWeight.w700)),
+                      child: const Text(
+                        'List Product',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
                     ),
                   ),
                 ],
@@ -272,10 +405,40 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
             child: GestureDetector(
               onTap: pickImages,
               child: Container(
-                decoration: BoxDecoration(color: const Color(0xFFE7D8C2), borderRadius: BorderRadius.circular(16)),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE7D8C2),
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: selectedImages.isEmpty
-                    ? const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.add_a_photo_outlined, color: _navy, size: 38), SizedBox(height: 8), Text('Add Photos', style: TextStyle(color: _navy, fontWeight: FontWeight.w700))]))
-                    : ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.file(selectedImages.first, fit: BoxFit.cover, width: double.infinity, height: double.infinity)),
+                    ? const Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.add_a_photo_outlined,
+                              color: _navy,
+                              size: 38,
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Add Photos',
+                              style: TextStyle(
+                                color: _navy,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.file(
+                          selectedImages.first,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                        ),
+                      ),
               ),
             ),
           ),
@@ -290,7 +453,11 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                     onTap: pickImages,
                     borderRadius: BorderRadius.circular(14),
                     child: Container(
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE6DED2))),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE6DED2)),
+                      ),
                       child: const Center(child: Icon(Icons.add, color: _navy)),
                     ),
                   ),
@@ -305,15 +472,36 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
 
   Widget _thumb(int index) {
     if (selectedImages.length <= index) {
-      return Container(decoration: BoxDecoration(color: const Color(0xFFF1E8DB), borderRadius: BorderRadius.circular(14)), child: const Center(child: Icon(Icons.image_outlined, color: _navy)));
+      return Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1E8DB),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Center(
+          child: Icon(Icons.image_outlined, color: _navy),
+        ),
+      );
     }
-    return ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.file(selectedImages[index], fit: BoxFit.cover, width: double.infinity));
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: Image.file(
+        selectedImages[index],
+        fit: BoxFit.cover,
+        width: double.infinity,
+      ),
+    );
   }
 
-  Widget _field(TextEditingController controller, String label, {bool number = false, bool validator = false}) {
+  Widget _field(
+    TextEditingController controller,
+    String label, {
+    bool number = false,
+    bool validator = false,
+  }) {
     return TextFormField(
       controller: controller,
-      keyboardType: number ? const TextInputType.numberWithOptions(decimal: true) : null,
+      keyboardType:
+          number ? const TextInputType.numberWithOptions(decimal: true) : null,
       decoration: _decoration(label),
       validator: validator
           ? (value) => value == null || value.trim().isEmpty ? 'Required' : null
@@ -326,21 +514,39 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         filled: true,
         fillColor: Colors.white,
         labelStyle: const TextStyle(color: Color(0xFF68747A)),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE6DED2))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE6DED2))),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE6DED2)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE6DED2)),
+        ),
       );
 
-  Widget _switch(String title, bool value, ValueChanged<bool> onChanged) => SwitchListTile(
+  Widget _switch(String title, bool value, ValueChanged<bool> onChanged) =>
+      SwitchListTile(
         contentPadding: EdgeInsets.zero,
-        title: Text(title, style: const TextStyle(color: _navy, fontWeight: FontWeight.w600)),
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: _navy,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         value: value,
         activeThumbColor: _gold,
         onChanged: onChanged,
       );
 
-  Widget _dateButton(String label, DateTime? date, VoidCallback onTap) => OutlinedButton.icon(
+  Widget _dateButton(String label, DateTime? date, VoidCallback onTap) =>
+      OutlinedButton.icon(
         onPressed: onTap,
         icon: const Icon(Icons.calendar_today_outlined, size: 17),
-        label: Text(date == null ? label : '${date.month}/${date.day}/${date.year}', maxLines: 1, overflow: TextOverflow.ellipsis),
+        label: Text(
+          date == null ? label : '${date.month}/${date.day}/${date.year}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       );
 }
