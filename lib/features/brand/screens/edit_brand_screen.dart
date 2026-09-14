@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../widgets/city_picker_sheet.dart';
 import '../services/brand_service.dart';
 
 class EditBrandScreen extends StatefulWidget {
@@ -12,192 +13,147 @@ class EditBrandScreen extends StatefulWidget {
   });
 
   @override
-  State<EditBrandScreen> createState() =>
-      _EditBrandScreenState();
+  State<EditBrandScreen> createState() => _EditBrandScreenState();
 }
 
-class _EditBrandScreenState
-    extends State<EditBrandScreen> {
+class _EditBrandScreenState extends State<EditBrandScreen> {
+  static const _navy = Color(0xFF0C2430);
+  static const _gold = Color(0xFFC99245);
+  static const _cream = Color(0xFFF8F3EA);
 
-  late TextEditingController
-      brandController;
-
-  late TextEditingController
-      taglineController;
-
-  late TextEditingController
-      descriptionController;
+  late final TextEditingController brandController;
+  late final TextEditingController taglineController;
+  late final TextEditingController descriptionController;
+  late final TextEditingController cityController;
 
   bool isSaving = false;
 
   @override
   void initState() {
     super.initState();
-
-    brandController =
-        TextEditingController(
-      text:
-          widget.brand['brandName'],
+    brandController = TextEditingController(
+      text: (widget.brand['brandName'] ?? '').toString(),
     );
-
-    taglineController =
-        TextEditingController(
-      text:
-          widget.brand['tagline'],
+    taglineController = TextEditingController(
+      text: (widget.brand['tagline'] ?? '').toString(),
     );
-
-    descriptionController =
-        TextEditingController(
-      text:
-          widget.brand['description'],
+    descriptionController = TextEditingController(
+      text: (widget.brand['description'] ?? '').toString(),
+    );
+    cityController = TextEditingController(
+      text: (widget.brand['city'] ?? '').toString(),
     );
   }
 
+  Future<void> _chooseCity() async {
+    final result = await CityPickerSheet.show(
+      context,
+      initialCity: cityController.text.trim(),
+    );
+    if (result != null) {
+      cityController.text = result.city;
+      if (mounted) setState(() {});
+    }
+  }
+
   Future<void> save() async {
-    try {
-      setState(() {
-        isSaving = true;
-      });
-
-      await BrandService()
-          .updateBrand(
-        brandId:
-            widget.brand['brandId'],
-        brandName:
-            brandController.text,
-        tagline:
-            taglineController.text,
-        description:
-            descriptionController.text,
+    if (brandController.text.trim().isEmpty || cityController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Brand name and city are required.')),
       );
+      return;
+    }
 
+    setState(() => isSaving = true);
+    try {
+      await BrandService().updateBrand(
+        brandId: (widget.brand['brandId'] ?? '').toString(),
+        brandName: brandController.text.trim(),
+        tagline: taglineController.text.trim(),
+        description: descriptionController.text.trim(),
+        city: cityController.text.trim(),
+      );
       if (!mounted) return;
-
       context.pop(true);
-
     } finally {
-      if (mounted) {
-        setState(() {
-          isSaving = false;
-        });
-      }
+      if (mounted) setState(() => isSaving = false);
     }
   }
 
   @override
-  Widget build(
-      BuildContext context) {
+  void dispose() {
+    brandController.dispose();
+    taglineController.dispose();
+    descriptionController.dispose();
+    cityController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _cream,
       appBar: AppBar(
-        title:
-            const Text(
+        backgroundColor: _cream,
+        title: const Text(
           'Edit Brand',
+          style: TextStyle(
+            color: _navy,
+            fontFamily: 'serif',
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
-      body: Padding(
-        padding:
-            const EdgeInsets.all(24),
-        child: Column(
-          children: [
-
-            TextField(
-              controller:
-                  brandController,
-              style:
-                  const TextStyle(
-                color:
-                    Colors.white,
-              ),
-              decoration:
-                  InputDecoration(
-                labelText:
-                    'Brand Name',
-                border:
-                    OutlineInputBorder(
-                  borderRadius:
-                      BorderRadius.circular(
-                    16,
-                  ),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          TextField(
+            controller: brandController,
+            decoration: const InputDecoration(labelText: 'Brand Name'),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: taglineController,
+            decoration: const InputDecoration(labelText: 'Tagline'),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: descriptionController,
+            maxLines: 5,
+            decoration: const InputDecoration(labelText: 'Description'),
+          ),
+          const SizedBox(height: 16),
+          InkWell(
+            onTap: _chooseCity,
+            borderRadius: BorderRadius.circular(14),
+            child: IgnorePointer(
+              child: TextField(
+                controller: cityController,
+                decoration: const InputDecoration(
+                  labelText: 'City',
+                  hintText: 'Use GPS or search for a city',
+                  prefixIcon: Icon(Icons.location_on_outlined),
+                  suffixIcon: Icon(Icons.map_outlined),
                 ),
               ),
             ),
-
-            const SizedBox(
-              height: 16,
-            ),
-
-            TextField(
-              controller:
-                  taglineController,
-              style:
-                  const TextStyle(
-                color:
-                    Colors.white,
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: _gold,
+                foregroundColor: Colors.white,
               ),
-              decoration:
-                  InputDecoration(
-                labelText:
-                    'Tagline',
-                border:
-                    OutlineInputBorder(
-                  borderRadius:
-                      BorderRadius.circular(
-                    16,
-                  ),
-                ),
-              ),
+              onPressed: isSaving ? null : save,
+              child: isSaving
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text('Save Changes'),
             ),
-
-            const SizedBox(
-              height: 16,
-            ),
-
-            TextField(
-              controller:
-                  descriptionController,
-              maxLines: 5,
-              style:
-                  const TextStyle(
-                color:
-                    Colors.white,
-              ),
-              decoration:
-                  InputDecoration(
-                labelText:
-                    'Description',
-                border:
-                    OutlineInputBorder(
-                  borderRadius:
-                      BorderRadius.circular(
-                    16,
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(
-              height: 24,
-            ),
-
-            SizedBox(
-              width:
-                  double.infinity,
-              child:
-                  ElevatedButton(
-                onPressed:
-                    isSaving
-                        ? null
-                        : save,
-                child:
-                    isSaving
-                        ? const CircularProgressIndicator()
-                        : const Text(
-                            'Save Changes',
-                          ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
