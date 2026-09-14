@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../models/listing_model.dart';
+import '../../../widgets/city_picker_sheet.dart';
 import '../services/listing_service.dart';
 
 class EditListingScreen extends StatefulWidget {
@@ -18,6 +19,10 @@ class EditListingScreen extends StatefulWidget {
 }
 
 class _EditListingScreenState extends State<EditListingScreen> {
+  static const _navy = Color(0xFF0C2430);
+  static const _gold = Color(0xFFC99245);
+  static const _cream = Color(0xFFF8F3EA);
+
   late final TextEditingController titleController;
   late final TextEditingController descriptionController;
   late final TextEditingController priceController;
@@ -29,31 +34,36 @@ class _EditListingScreenState extends State<EditListingScreen> {
   late bool isHotDeal;
   DateTime? dealStartDate;
   DateTime? dealEndDate;
-
   bool isSaving = false;
 
   @override
   void initState() {
     super.initState();
-
     titleController = TextEditingController(text: widget.listing.title);
-    descriptionController =
-        TextEditingController(text: widget.listing.description);
-    priceController = TextEditingController(
-      text: widget.listing.price.toStringAsFixed(2),
-    );
+    descriptionController = TextEditingController(text: widget.listing.description);
+    priceController = TextEditingController(text: widget.listing.price.toStringAsFixed(2));
     cityController = TextEditingController(text: widget.listing.city);
     dealPriceController = TextEditingController(
       text: widget.listing.dealPrice > 0
           ? widget.listing.dealPrice.toStringAsFixed(2)
           : '',
     );
-
     deliveryAvailable = widget.listing.deliveryAvailable;
     pickupAvailable = widget.listing.pickupAvailable;
     isHotDeal = widget.listing.isHotDeal;
     dealStartDate = widget.listing.dealStartAt?.toDate();
     dealEndDate = widget.listing.dealEndAt?.toDate();
+  }
+
+  Future<void> _chooseCity() async {
+    final result = await CityPickerSheet.show(
+      context,
+      initialCity: cityController.text.trim(),
+    );
+    if (result != null) {
+      cityController.text = result.city;
+      if (mounted) setState(() {});
+    }
   }
 
   Future<DateTime?> _pickDate(DateTime? current) {
@@ -74,12 +84,10 @@ class _EditListingScreenState extends State<EditListingScreen> {
       _message('Enter a title and valid price.');
       return;
     }
-
     if (cityController.text.trim().isEmpty) {
-      _message('Enter the city for this listing.');
+      _message('Choose the city for this listing.');
       return;
     }
-
     if (isHotDeal) {
       if (dealPrice <= 0 || dealPrice >= price) {
         _message('Deal price must be lower than the regular price.');
@@ -91,10 +99,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
       }
     }
 
-    setState(() {
-      isSaving = true;
-    });
-
+    setState(() => isSaving = true);
     try {
       final updated = ListingModel(
         listingId: widget.listing.listingId,
@@ -135,25 +140,17 @@ class _EditListingScreenState extends State<EditListingScreen> {
       );
 
       await ListingService().updateListing(updated);
-
       if (!mounted) return;
       context.pop(true);
     } catch (e) {
-      if (!mounted) return;
-      _message(e.toString());
+      if (mounted) _message(e.toString());
     } finally {
-      if (mounted) {
-        setState(() {
-          isSaving = false;
-        });
-      }
+      if (mounted) setState(() => isSaving = false);
     }
   }
 
   void _message(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -169,7 +166,14 @@ class _EditListingScreenState extends State<EditListingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit Listing')),
+      backgroundColor: _cream,
+      appBar: AppBar(
+        backgroundColor: _cream,
+        title: const Text(
+          'Edit Listing',
+          style: TextStyle(color: _navy, fontFamily: 'serif', fontWeight: FontWeight.w700),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
@@ -193,12 +197,19 @@ class _EditListingScreenState extends State<EditListingScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          TextField(
-            controller: cityController,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'City',
-              prefixIcon: Icon(Icons.location_on_outlined),
+          InkWell(
+            onTap: _chooseCity,
+            borderRadius: BorderRadius.circular(14),
+            child: IgnorePointer(
+              child: TextField(
+                controller: cityController,
+                decoration: const InputDecoration(
+                  labelText: 'City',
+                  hintText: 'Use GPS or search for a city',
+                  prefixIcon: Icon(Icons.location_on_outlined),
+                  suffixIcon: Icon(Icons.map_outlined),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -206,21 +217,15 @@ class _EditListingScreenState extends State<EditListingScreen> {
             contentPadding: EdgeInsets.zero,
             title: const Text('Delivery Available'),
             value: deliveryAvailable,
-            onChanged: (value) {
-              setState(() {
-                deliveryAvailable = value;
-              });
-            },
+            activeThumbColor: _gold,
+            onChanged: (value) => setState(() => deliveryAvailable = value),
           ),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Pickup Available'),
             value: pickupAvailable,
-            onChanged: (value) {
-              setState(() {
-                pickupAvailable = value;
-              });
-            },
+            activeThumbColor: _gold,
+            onChanged: (value) => setState(() => pickupAvailable = value),
           ),
           const SizedBox(height: 8),
           Card(
@@ -236,18 +241,14 @@ class _EditListingScreenState extends State<EditListingScreen> {
                     ),
                     subtitle: const Text('Show this listing in Hot deals near me.'),
                     value: isHotDeal,
-                    onChanged: (value) {
-                      setState(() {
-                        isHotDeal = value;
-                      });
-                    },
+                    activeThumbColor: _gold,
+                    onChanged: (value) => setState(() => isHotDeal = value),
                   ),
                   if (isHotDeal) ...[
                     const SizedBox(height: 10),
                     TextField(
                       controller: dealPriceController,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
                         labelText: 'Deal price',
                         prefixText: '\$ ',
@@ -260,11 +261,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
                           child: OutlinedButton.icon(
                             onPressed: () async {
                               final date = await _pickDate(dealStartDate);
-                              if (date != null && mounted) {
-                                setState(() {
-                                  dealStartDate = date;
-                                });
-                              }
+                              if (date != null && mounted) setState(() => dealStartDate = date);
                             },
                             icon: const Icon(Icons.calendar_today_outlined),
                             label: Text(
@@ -279,11 +276,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
                           child: OutlinedButton.icon(
                             onPressed: () async {
                               final date = await _pickDate(dealEndDate);
-                              if (date != null && mounted) {
-                                setState(() {
-                                  dealEndDate = date;
-                                });
-                              }
+                              if (date != null && mounted) setState(() => dealEndDate = date);
                             },
                             icon: const Icon(Icons.event_outlined),
                             label: Text(
@@ -303,7 +296,8 @@ class _EditListingScreenState extends State<EditListingScreen> {
           const SizedBox(height: 28),
           SizedBox(
             height: 54,
-            child: ElevatedButton(
+            child: FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: _gold, foregroundColor: Colors.white),
               onPressed: isSaving ? null : saveChanges,
               child: Text(isSaving ? 'Saving...' : 'Save Changes'),
             ),
