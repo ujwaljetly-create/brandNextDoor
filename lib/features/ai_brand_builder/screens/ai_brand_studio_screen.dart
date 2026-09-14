@@ -61,6 +61,7 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
         personalityTraits: personality,
         targetAudience: audience,
         brandScore: widget.brand.brandScore,
+        city: widget.brand.city,
       );
 
   Future<void> _editBrand() async {
@@ -73,19 +74,41 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
       isScrollControlled: true,
       showDragHandle: true,
       builder: (context) => Padding(
-        padding: EdgeInsets.fromLTRB(22, 6, 22, MediaQuery.of(context).viewInsets.bottom + 24),
+        padding: EdgeInsets.fromLTRB(
+          22,
+          6,
+          22,
+          MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Edit Brand Details', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w700, color: _navy)),
+              const Text(
+                'Edit Brand Details',
+                style: TextStyle(
+                  fontSize: 23,
+                  fontWeight: FontWeight.w700,
+                  color: _navy,
+                ),
+              ),
               const SizedBox(height: 18),
-              TextField(controller: name, decoration: const InputDecoration(labelText: 'Brand Name')),
+              TextField(
+                controller: name,
+                decoration: const InputDecoration(labelText: 'Brand Name'),
+              ),
               const SizedBox(height: 12),
-              TextField(controller: line, decoration: const InputDecoration(labelText: 'Tagline')),
+              TextField(
+                controller: line,
+                decoration: const InputDecoration(labelText: 'Tagline'),
+              ),
               const SizedBox(height: 12),
-              TextField(controller: desc, maxLines: 5, decoration: const InputDecoration(labelText: 'Description')),
+              TextField(
+                controller: desc,
+                maxLines: 5,
+                decoration: const InputDecoration(labelText: 'Description'),
+              ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
@@ -155,7 +178,10 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
       final file = File(widget.logoPath!);
       if (await file.exists()) {
         final bytes = await file.readAsBytes();
-        await BrandService().saveBrandLogo(brandId: savedBrandId!, bytes: bytes);
+        await BrandService().saveBrandLogo(
+          brandId: savedBrandId!,
+          bytes: bytes,
+        );
         uploadedManualLogo = true;
       }
     }
@@ -168,7 +194,10 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
     try {
       final id = await _ensureSaved();
       if (!mounted) return;
-      await context.push('/ai-logo-generation', extra: _currentBrand(brandId: id));
+      await context.push(
+        '/ai-logo-generation',
+        extra: _currentBrand(brandId: id),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -214,19 +243,29 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
         ),
         title: const Text(
           'Your Brand is Ready!',
-          style: TextStyle(color: _navy, fontFamily: 'serif', fontWeight: FontWeight.w700),
+          style: TextStyle(
+            color: _navy,
+            fontFamily: 'serif',
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
         children: [
-          const Text('Here’s what we created for you.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF67747B))),
+          const Text(
+            'Here’s what we created for you.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Color(0xFF67747B)),
+          ),
           const SizedBox(height: 18),
           Container(
             height: 190,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(22),
-              gradient: const LinearGradient(colors: [Color(0xFFF1DEC0), Color(0xFFE2C79D)]),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFF1DEC0), Color(0xFFE2C79D)],
+              ),
             ),
             child: Center(
               child: manualLogo != null
@@ -240,15 +279,29 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
                   : Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.local_florist_outlined, color: _navy, size: 50),
+                        const Icon(
+                          Icons.local_florist_outlined,
+                          color: _navy,
+                          size: 50,
+                        ),
                         const SizedBox(height: 12),
                         Text(
                           brandName.toUpperCase(),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: _navy, fontFamily: 'serif', fontSize: 29, fontWeight: FontWeight.w700, letterSpacing: 2),
+                          style: const TextStyle(
+                            color: _navy,
+                            fontFamily: 'serif',
+                            fontSize: 29,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 2,
+                          ),
                         ),
                         const SizedBox(height: 5),
-                        Text(tagline, textAlign: TextAlign.center, style: const TextStyle(color: _navy, fontSize: 12)),
+                        Text(
+                          tagline,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: _navy, fontSize: 12),
+                        ),
                       ],
                     ),
             ),
@@ -259,22 +312,49 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
             child: Wrap(
               spacing: 9,
               runSpacing: 9,
-              children: colors.map((c) => Chip(label: Text(c), backgroundColor: const Color(0xFFF1E7D8))).toList(),
+              children: colors
+                  .map(
+                    (c) => Chip(
+                      label: Text(c),
+                      backgroundColor: const Color(0xFFF1E7D8),
+                    ),
+                  )
+                  .toList(),
             ),
           ),
           _section(
             title: 'Tagline',
-            action: TextButton(onPressed: isGenerating ? null : _regenerateTagline, child: const Text('Try another')),
-            child: Text(tagline, style: const TextStyle(color: _navy, fontSize: 16, fontWeight: FontWeight.w600)),
+            action: TextButton(
+              onPressed: isGenerating ? null : _regenerateTagline,
+              child: const Text('Try another'),
+            ),
+            child: Text(
+              tagline,
+              style: const TextStyle(
+                color: _navy,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           _section(
             title: 'Description',
-            action: TextButton(onPressed: isGenerating ? null : _improveDescription, child: const Text('Improve')),
-            child: Text(description, style: const TextStyle(color: _navy, fontSize: 15, height: 1.5)),
+            action: TextButton(
+              onPressed: isGenerating ? null : _improveDescription,
+              child: const Text('Improve'),
+            ),
+            child: Text(
+              description,
+              style: const TextStyle(color: _navy, fontSize: 15, height: 1.5),
+            ),
           ),
           _section(
             title: 'Brand Personality',
-            child: Wrap(spacing: 8, runSpacing: 8, children: personality.map((item) => Chip(label: Text(item))).toList()),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: personality.map((item) => Chip(label: Text(item))).toList(),
+            ),
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
@@ -306,7 +386,15 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
                 children: [
                   Icon(Icons.check_circle, color: Color(0xFF2A8F6A)),
                   SizedBox(width: 10),
-                  Expanded(child: Text('Your uploaded logo will be saved with this brand.', style: TextStyle(color: _navy, fontWeight: FontWeight.w600))),
+                  Expanded(
+                    child: Text(
+                      'Your uploaded logo will be saved with this brand.',
+                      style: TextStyle(
+                        color: _navy,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -314,11 +402,24 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
           SizedBox(
             height: 56,
             child: FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: _gold, foregroundColor: Colors.white),
+              style: FilledButton.styleFrom(
+                backgroundColor: _gold,
+                foregroundColor: Colors.white,
+              ),
               onPressed: isSaving ? null : _continue,
               child: isSaving
-                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Continue to Dashboard', style: TextStyle(fontWeight: FontWeight.w700)),
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      'Continue to Dashboard',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
             ),
           ),
         ],
@@ -326,7 +427,11 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
     );
   }
 
-  Widget _section({required String title, required Widget child, Widget? action}) {
+  Widget _section({
+    required String title,
+    required Widget child,
+    Widget? action,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Container(
@@ -342,7 +447,16 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
           children: [
             Row(
               children: [
-                Expanded(child: Text(title, style: const TextStyle(color: _navy, fontSize: 17, fontWeight: FontWeight.w700))),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      color: _navy,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
                 if (action != null) action,
               ],
             ),
