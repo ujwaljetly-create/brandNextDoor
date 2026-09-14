@@ -186,11 +186,18 @@ exports.notifyFollowersOnNewListing = onDocumentCreated(
 
     const brandDoc = await db.collection('brands').doc(listing.brandId).get();
     const brandName = brandDoc.data()?.brandName || 'A seller you follow';
+    const isDeal = listing.isHotDeal === true && Number(listing.dealPrice || 0) > 0;
+    const dealPrice = Number(listing.dealPrice || 0);
+
     await notifyFollowers({
       brandId: listing.brandId,
-      title: `${brandName} added something new`,
-      body: listing.title || 'A new product is now available.',
-      type: 'seller_new_listing',
+      title: isDeal
+        ? `New deal from ${brandName}`
+        : `${brandName} added something new`,
+      body: isDeal
+        ? `${listing.title || 'An item'} is now on deal for $${dealPrice.toFixed(2)}.`
+        : (listing.title || 'A new product is now available.'),
+      type: isDeal ? 'seller_new_deal' : 'seller_new_listing',
       listingId: event.params.listingId,
     });
   },
