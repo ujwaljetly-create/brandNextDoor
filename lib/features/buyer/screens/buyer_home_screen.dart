@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../models/listing_model.dart';
 import '../../../models/order_model.dart';
+import '../../../services/location/city_location_service.dart';
+import '../../../widgets/city_picker_sheet.dart';
 import '../../brand/services/brand_service.dart';
 import '../../orders/services/order_service.dart';
 import '../providers/buyer_home_provider.dart';
@@ -28,6 +28,7 @@ class _BuyerHomeScreenState extends ConsumerState<BuyerHomeScreen> {
 
   final _searchController = TextEditingController();
   final _dealController = PageController(viewportFraction: .91);
+  final _locationService = CityLocationService();
   Timer? _dealTimer;
 
   String _searchText = '';
@@ -62,101 +63,33 @@ class _BuyerHomeScreenState extends ConsumerState<BuyerHomeScreen> {
 
   Future<void> _loadCurrentCity() async {
     try {
-      final enabled = await Geolocator.isLocationServiceEnabled();
-      if (!enabled) return _setCityFallback();
-
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        return _setCityFallback();
-      }
-
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
-      );
-      final places = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-      final place = places.isNotEmpty ? places.first : null;
-      final city = (place?.locality ?? '').trim();
-      final fallback = (place?.subAdministrativeArea ?? '').trim();
-
+      final result = await _locationService.currentCity();
       if (!mounted) return;
       setState(() {
-        _cityName = city.isNotEmpty
-            ? city
-            : fallback.isNotEmpty
-                ? fallback
-                : 'Choose location';
+        _cityName = result?.city ?? 'Choose location';
         _locationLoading = false;
       });
     } catch (_) {
-      _setCityFallback();
-    }
-  }
-
-  void _setCityFallback() {
-    if (!mounted) return;
-    setState(() {
-      _cityName = 'Choose location';
-      _locationLoading = false;
-    });
-  }
-
-  Future<void> _changeLocation() async {
-    final controller = TextEditingController(
-      text: _cityName == 'Choose location' || _locationLoading ? '' : _cityName,
-    );
-
-    final city = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Change location'),
-        content: TextField(
-          controller: controller,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(labelText: 'City name'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          TextButton.icon(
-            onPressed: () => Navigator.pop(dialogContext, '__current__'),
-            icon: const Icon(Icons.my_location),
-            label: const Text('Use current'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final value = controller.text.trim();
-              if (value.isNotEmpty) Navigator.pop(dialogContext, value);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-
-    controller.dispose();
-    if (city == null) return;
-
-    if (city == '__current__') {
+      if (!mounted) return;
       setState(() {
-        _cityName = 'Finding your location...';
-        _locationLoading = true;
-      });
-      await _loadCurrentCity();
-    } else {
-      setState(() {
-        _cityName = city;
+        _cityName = 'Choose location';
         _locationLoading = false;
       });
     }
+  }
+
+  Future<void> _changeLocation() async {
+    final result = await CityPickerSheet.show(
+      context,
+      initialCity: _cityName == 'Choose location' || _locationLoading
+          ? ''
+          : _cityName,
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      _cityName = result.city;
+      _locationLoading = false;
+    });
   }
 
   List<ListingModel> _searchResults(List<ListingModel> items) {
@@ -178,16 +111,14 @@ class _BuyerHomeScreenState extends ConsumerState<BuyerHomeScreen> {
         .map((o) => o.productCategory.toLowerCase().trim())
         .where((e) => e.isNotEmpty)
         .toSet();
-
     final scored = [...items];
     scored.sort((a, b) {
       int score(ListingModel item) {
-        var result = item.soldCount * 3 + item.rating.round() * 5;
-        if (interests.contains(item.category.toLowerCase())) result += 100;
-        if (item.hasActiveDeal) result += 8;
-        return result;
+        var value = item.soldCount * 3 + item.rating.round() * 5;
+        if (interests.contains(item.category.toLowerCase())) value += 100;
+        if (item.hasActiveDeal) value += 8;
+        return value;
       }
-
       return score(b).compareTo(score(a));
     });
     return scored;
@@ -220,8 +151,7 @@ class _BuyerHomeScreenState extends ConsumerState<BuyerHomeScreen> {
             final trending = [...nearby]
               ..sort((a, b) {
                 final sold = b.soldCount.compareTo(a.soldCount);
-                if (sold != 0) return sold;
-                return b.rating.compareTo(a.rating);
+                return sold != 0 ? sold : b.rating.compareTo(a.rating);
               });
             final deals = nearby.where((e) => e.hasActiveDeal).toList();
             final searchResults = _searchResults(items);
@@ -265,7 +195,7 @@ class _BuyerHomeScreenState extends ConsumerState<BuyerHomeScreen> {
                               );
                             },
                           ),
-                        _localBrands(items),
+                        _localBrands(nearby),
                       ] else
                         _searchGrid(searchResults),
                       const SizedBox(height: 24),
@@ -281,102 +211,98 @@ class _BuyerHomeScreenState extends ConsumerState<BuyerHomeScreen> {
     );
   }
 
-  Widget _header() {
-    return Container(
-      color: navy,
-      padding: const EdgeInsets.fromLTRB(18, 15, 18, 12),
-      child: Row(
-        children: [
-          const Expanded(
-            child: Text(
-              'BRAND\nNEXT DOOR',
+  Widget _header() => Container(
+        color: navy,
+        padding: const EdgeInsets.fromLTRB(18, 15, 18, 12),
+        child: Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'BRAND\nNEXT DOOR',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'serif',
+                  fontSize: 15,
+                  height: .95,
+                  letterSpacing: 3,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Notifications',
+              onPressed: () => context.push('/notifications'),
+              icon: const Icon(Icons.notifications_none, color: Colors.white),
+            ),
+          ],
+        ),
+      );
+
+  Widget _search() => Container(
+        color: navy,
+        padding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Discover something\nextraordinary nearby.',
               style: TextStyle(
                 color: Colors.white,
                 fontFamily: 'serif',
-                fontSize: 15,
-                height: .95,
-                letterSpacing: 3,
-                fontWeight: FontWeight.w700,
+                fontSize: 25,
+                height: 1.05,
               ),
             ),
-          ),
-          IconButton(
-            tooltip: 'Notifications',
-            onPressed: () => context.push('/notifications'),
-            icon: const Icon(Icons.notifications_none, color: Colors.white),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _search() {
-    return Container(
-      color: navy,
-      padding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Discover something\nextraordinary nearby.',
-            style: TextStyle(
-              color: Colors.white,
-              fontFamily: 'serif',
-              fontSize: 25,
-              height: 1.05,
+            const SizedBox(height: 14),
+            TextField(
+              controller: _searchController,
+              onChanged: (value) => setState(() => _searchText = value),
+              decoration: InputDecoration(
+                hintText: 'Search brands & products...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchText.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchText = '');
+                        },
+                        icon: const Icon(Icons.close),
+                      ),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(28),
+                  borderSide: BorderSide.none,
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _searchController,
-            onChanged: (value) => setState(() => _searchText = value),
-            decoration: InputDecoration(
-              hintText: 'Search brands & products...',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _searchText.isEmpty
-                  ? null
-                  : IconButton(
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() => _searchText = '');
-                      },
-                      icon: const Icon(Icons.close),
+            const SizedBox(height: 9),
+            InkWell(
+              onTap: _changeLocation,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.location_on_outlined, color: gold, size: 17),
+                  const SizedBox(width: 5),
+                  Flexible(
+                    child: Text(
+                      _cityName,
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
                     ),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(28),
-                borderSide: BorderSide.none,
+                  ),
+                  const SizedBox(width: 3),
+                  const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.white70,
+                    size: 16,
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(height: 9),
-          InkWell(
-            onTap: _changeLocation,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.location_on_outlined, color: gold, size: 17),
-                const SizedBox(width: 5),
-                Flexible(
-                  child: Text(
-                    _cityName,
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
-                  ),
-                ),
-                const SizedBox(width: 3),
-                const Icon(
-                  Icons.keyboard_arrow_down,
-                  color: Colors.white70,
-                  size: 16,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+      );
 
   Widget _dealCarousel(List<ListingModel> deals) {
     return Padding(
@@ -505,8 +431,7 @@ class _BuyerHomeScreenState extends ConsumerState<BuyerHomeScreen> {
                                             overflow: TextOverflow.ellipsis,
                                             style: const TextStyle(
                                               color: Colors.grey,
-                                              decoration:
-                                                  TextDecoration.lineThrough,
+                                              decoration: TextDecoration.lineThrough,
                                               fontSize: 12,
                                             ),
                                           ),
@@ -592,7 +517,7 @@ class _BuyerHomeScreenState extends ConsumerState<BuyerHomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Local Brands',
+            'Local Brands Near You',
             style: TextStyle(
               color: navy,
               fontFamily: 'serif',
@@ -602,7 +527,7 @@ class _BuyerHomeScreenState extends ConsumerState<BuyerHomeScreen> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Discover independent sellers near you.',
+            'Discover independent sellers in your area.',
             style: TextStyle(color: Color(0xFF7A858B), fontSize: 12),
           ),
           const SizedBox(height: 12),
@@ -662,34 +587,32 @@ class _BuyerHomeScreenState extends ConsumerState<BuyerHomeScreen> {
     );
   }
 
-  Widget _bottomNav() {
-    return NavigationBar(
-      backgroundColor: Colors.white,
-      selectedIndex: 0,
-      onDestinationSelected: (index) {
-        if (index == 0) return;
-        if (index == 1) context.push('/marketplace');
-        if (index == 2) context.push('/buyer-orders');
-        if (index == 3) context.push('/settings?role=buyer');
-      },
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.home_outlined),
-          selectedIcon: Icon(Icons.home),
-          label: 'Home',
-        ),
-        NavigationDestination(icon: Icon(Icons.search), label: 'Explore'),
-        NavigationDestination(
-          icon: Icon(Icons.receipt_long_outlined),
-          label: 'Orders',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.person_outline),
-          label: 'Profile',
-        ),
-      ],
-    );
-  }
+  Widget _bottomNav() => NavigationBar(
+        backgroundColor: Colors.white,
+        selectedIndex: 0,
+        onDestinationSelected: (index) {
+          if (index == 0) return;
+          if (index == 1) context.push('/marketplace');
+          if (index == 2) context.push('/buyer-orders');
+          if (index == 3) context.push('/settings?role=buyer');
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          NavigationDestination(icon: Icon(Icons.search), label: 'Explore'),
+          NavigationDestination(
+            icon: Icon(Icons.receipt_long_outlined),
+            label: 'Orders',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
+        ],
+      );
 }
 
 class _LocalBrandCard extends StatefulWidget {
@@ -704,6 +627,7 @@ class _LocalBrandCard extends StatefulWidget {
 class _LocalBrandCardState extends State<_LocalBrandCard> {
   static const _navy = Color(0xFF0C2430);
   Map<String, dynamic>? brand;
+  bool loading = true;
 
   @override
   void initState() {
@@ -714,15 +638,30 @@ class _LocalBrandCardState extends State<_LocalBrandCard> {
   Future<void> _loadBrand() async {
     try {
       final result = await BrandService().getBrand(widget.listing.brandId);
-      if (mounted) setState(() => brand = result);
-    } catch (_) {}
+      if (!mounted) return;
+      setState(() {
+        brand = result;
+        loading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => loading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final name = (brand?['brandName'] ?? 'Local Brand').toString();
-    final description = (brand?['description'] ?? brand?['tagline'] ?? '').toString();
-    final logoUrl = (brand?['logoUrl'] ?? '').toString();
+    if (loading) {
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+    }
+
+    final name = (brand?['brandName'] ?? '').toString().trim();
+    if (brand == null || name.isEmpty || name.toLowerCase() == 'local brand') {
+      return const SizedBox.shrink();
+    }
+
+    final description =
+        (brand?['description'] ?? brand?['tagline'] ?? '').toString().trim();
+    final logoUrl = (brand?['logoUrl'] ?? '').toString().trim();
 
     return Material(
       color: Colors.white,
@@ -747,14 +686,24 @@ class _LocalBrandCardState extends State<_LocalBrandCard> {
             children: [
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: const Color(0xFFF1E6D4),
-                    backgroundImage:
-                        logoUrl.isNotEmpty ? NetworkImage(logoUrl) : null,
-                    child: logoUrl.isEmpty
-                        ? const Icon(Icons.storefront_outlined, color: _navy)
-                        : null,
+                  Container(
+                    width: 58,
+                    height: 58,
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1E6D4),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: logoUrl.isNotEmpty
+                        ? Image.network(
+                            logoUrl,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.storefront_outlined,
+                              color: _navy,
+                            ),
+                          )
+                        : const Icon(Icons.storefront_outlined, color: _navy),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
