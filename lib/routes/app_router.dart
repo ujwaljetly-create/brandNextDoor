@@ -14,6 +14,7 @@ import '../features/brand/screens/edit_brand_screen.dart';
 import '../features/brand/screens/seller_brand_screen.dart';
 import '../features/buyer/screens/buyer_home_screen.dart';
 import '../features/buyer/screens/buyer_marketplace_screen.dart';
+import '../features/buyer/screens/buyer_notifications_screen.dart';
 import '../features/buyer/screens/listing_details_screen.dart';
 import '../features/buyer/screens/saved_items_screen.dart';
 import '../features/buyer/screens/seller_storefront_screen.dart';
@@ -50,10 +51,18 @@ class AppRouter {
           return AccountSettingsScreen(role: role);
         },
       ),
-      GoRoute(path: '/saved-items', builder: (context, state) => const SavedItemsScreen()),
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const BuyerNotificationsScreen(),
+      ),
+      GoRoute(
+        path: '/saved-items',
+        builder: (context, state) => const SavedItemsScreen(),
+      ),
       GoRoute(
         path: '/listing-details',
-        builder: (context, state) => ListingDetailsScreen(listing: state.extra as ListingModel),
+        builder: (context, state) =>
+            ListingDetailsScreen(listing: state.extra as ListingModel),
       ),
       GoRoute(
         path: '/seller-storefront',
@@ -67,35 +76,60 @@ class AppRouter {
       ),
       GoRoute(
         path: '/place-order',
-        builder: (context, state) => PlaceOrderScreen(listing: state.extra as ListingModel),
+        builder: (context, state) =>
+            PlaceOrderScreen(listing: state.extra as ListingModel),
       ),
       GoRoute(
         path: '/review-order',
-        builder: (context, state) => ReviewOrderScreen(order: state.extra as OrderModel),
+        builder: (context, state) =>
+            ReviewOrderScreen(order: state.extra as OrderModel),
       ),
       GoRoute(
         path: '/seller-order-details',
-        builder: (context, state) => SellerOrderDetailsScreen(order: state.extra as OrderModel),
+        builder: (context, state) =>
+            SellerOrderDetailsScreen(order: state.extra as OrderModel),
       ),
-      GoRoute(path: '/seller-analytics', builder: (context, state) => const SellerAnalyticsScreen()),
-      GoRoute(path: '/ai-listing-builder', builder: (context, state) => const AIListingBuilderScreen()),
+      GoRoute(
+        path: '/seller-analytics',
+        builder: (context, state) => const SellerAnalyticsScreen(),
+      ),
+      GoRoute(
+        path: '/ai-listing-builder',
+        builder: (context, state) => const AIListingBuilderScreen(),
+      ),
       GoRoute(
         path: '/ai-listing-result',
-        builder: (context, state) => AIListingResultScreen(listing: state.extra as GeneratedListingModel),
+        builder: (context, state) => AIListingResultScreen(
+          listing: state.extra as GeneratedListingModel,
+        ),
       ),
       GoRoute(
         path: '/edit-listing',
-        builder: (context, state) => EditListingScreen(listing: state.extra as ListingModel),
+        builder: (context, state) =>
+            EditListingScreen(listing: state.extra as ListingModel),
       ),
-      GoRoute(path: '/marketplace', builder: (context, state) => const BuyerMarketplaceScreen()),
+      GoRoute(
+        path: '/marketplace',
+        builder: (context, state) => const BuyerMarketplaceScreen(),
+      ),
       GoRoute(
         path: '/edit-brand',
-        builder: (context, state) => EditBrandScreen(brand: state.extra as Map<String, dynamic>),
+        builder: (context, state) =>
+            EditBrandScreen(brand: state.extra as Map<String, dynamic>),
       ),
       GoRoute(path: '/welcome', builder: (context, state) => const WelcomeScreen()),
-      GoRoute(path: '/account-type', builder: (context, state) => const AccountTypeScreen()),
-      GoRoute(path: '/seller-dashboard', builder: (context, state) => const SellerDashboardScreen()),
-      GoRoute(path: '/seller-brand', builder: (context, state) => const SellerBrandScreen()),
+      GoRoute(
+        path: '/account-type',
+        builder: (context, state) => const AccountTypeScreen(),
+      ),
+      GoRoute(
+        path: '/seller-dashboard',
+        builder: (context, state) => const SellerDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/seller-brand',
+        builder: (context, state) => const SellerBrandScreen(),
+      ),
       GoRoute(
         path: '/register',
         builder: (context, state) {
@@ -104,26 +138,59 @@ class AppRouter {
         },
       ),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-      GoRoute(path: '/verify-email', builder: (context, state) => const VerifyEmailScreen()),
-      GoRoute(path: '/buyer-home', builder: (context, state) => const BuyerHomeScreen()),
-      GoRoute(path: '/seller-onboarding', builder: (context, state) => const SellerOnboardingScreen()),
+      GoRoute(
+        path: '/verify-email',
+        builder: (context, state) => const VerifyEmailScreen(),
+      ),
+      GoRoute(
+        path: '/buyer-home',
+        builder: (context, state) => const BuyerHomeScreen(),
+      ),
+      GoRoute(
+        path: '/seller-onboarding',
+        builder: (context, state) => const SellerOnboardingScreen(),
+      ),
       GoRoute(
         path: '/create-listing',
-        builder: (context, state) => CreateListingScreen(generatedListing: state.extra as GeneratedListingModel?),
+        builder: (context, state) => CreateListingScreen(
+          generatedListing: state.extra as GeneratedListingModel?,
+        ),
       ),
-      GoRoute(path: '/my-listings', builder: (context, state) => const MyListingsScreen()),
-      GoRoute(path: '/buyer-orders', builder: (context, state) => const BuyerOrdersScreen()),
-      GoRoute(path: '/seller-orders', builder: (context, state) => const SellerOrdersScreen()),
-      GoRoute(path: '/messages', builder: (context, state) => const ConversationsScreen()),
-      GoRoute(path: '/brand-profile', builder: (context, state) => const BrandProfileScreen()),
-      GoRoute(path: '/ai-brand-builder', builder: (context, state) => const AIBrandBuilderScreen()),
+      GoRoute(
+        path: '/my-listings',
+        builder: (context, state) => const MyListingsScreen(),
+      ),
+      GoRoute(
+        path: '/buyer-orders',
+        builder: (context, state) => const BuyerOrdersScreen(),
+      ),
+      GoRoute(
+        path: '/seller-orders',
+        builder: (context, state) => const SellerOrdersScreen(),
+      ),
+      GoRoute(
+        path: '/messages',
+        builder: (context, state) => const ConversationsScreen(),
+      ),
+      GoRoute(
+        path: '/brand-profile',
+        builder: (context, state) => const BrandProfileScreen(),
+      ),
+      GoRoute(
+        path: '/ai-brand-builder',
+        builder: (context, state) => const AIBrandBuilderScreen(),
+      ),
       GoRoute(
         path: '/brand-generation-result',
-        builder: (context, state) => BrandGenerationResultScreen(brand: state.extra as GeneratedBrandModel),
+        builder: (context, state) => BrandGenerationResultScreen(
+          brand: state.extra as GeneratedBrandModel,
+        ),
       ),
       GoRoute(
         path: '/ai-logo-generation',
-        builder: (context, state) => AILogoGenerationScreen(brand: state.extra as GeneratedBrandModel),
+        builder: (context, state) => AILogoGenerationScreen(
+          brand: state.extra as GeneratedBrandModel,
+        ),
       ),
       GoRoute(
         path: '/ai-brand-studio',
