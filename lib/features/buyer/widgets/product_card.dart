@@ -1,9 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../models/listing_model.dart';
 import '../../brand/services/brand_service.dart';
 import '../services/buyer_activity_service.dart';
+import '../services/saved_items_service.dart';
 
 class ProductCard extends StatefulWidget {
   final ListingModel listing;
@@ -19,13 +21,19 @@ class _ProductCardState extends State<ProductCard> {
   static const _gold = Color(0xFFC99245);
   static final Map<String, String> _brandCache = {};
 
+  final SavedItemsService _savedItemsService = SavedItemsService();
+
   String brandName = '';
+  bool isSaved = false;
+  bool saving = false;
+
   ListingModel get listing => widget.listing;
 
   @override
   void initState() {
     super.initState();
     _loadBrandName();
+    _loadSavedState();
   }
 
   @override
@@ -34,6 +42,10 @@ class _ProductCardState extends State<ProductCard> {
     if (oldWidget.listing.brandId != widget.listing.brandId) {
       brandName = '';
       _loadBrandName();
+    }
+    if (oldWidget.listing.listingId != widget.listing.listingId) {
+      isSaved = false;
+      _loadSavedState();
     }
   }
 
@@ -50,6 +62,44 @@ class _ProductCardState extends State<ProductCard> {
       if (name.isNotEmpty) _brandCache[listing.brandId] = name;
       if (mounted) setState(() => brandName = name);
     } catch (_) {}
+  }
+
+  Future<void> _loadSavedState() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    try {
+      final saved = await _savedItemsService.isSaved(
+        uid: user.uid,
+        listingId: listing.listingId,
+      );
+      if (mounted) setState(() => isSaved = saved);
+    } catch (_) {}
+  }
+
+  Future<void> _toggleSaved() async {
+    if (saving) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to save items.')),
+      );
+      return;
+    }
+
+    setState(() => saving = true);
+    try {
+      final saved = await _savedItemsService.toggle(
+        uid: user.uid,
+        listing: listing,
+      );
+      if (!mounted) return;
+      setState(() => isSaved = saved);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(saved ? 'Saved to your items.' : 'Removed from saved items.')),
+      );
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
   }
 
   @override
@@ -93,14 +143,27 @@ class _ProductCardState extends State<ProductCard> {
                     Positioned(
                       top: 8,
                       right: 8,
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: .9),
-                          shape: BoxShape.circle,
+                      child: Material(
+                        color: Colors.white.withValues(alpha: .92),
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: _toggleSaved,
+                          child: SizedBox(
+                            width: 34,
+                            height: 34,
+                            child: saving
+                                ? const Padding(
+                                    padding: EdgeInsets.all(9),
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : Icon(
+                                    isSaved ? Icons.favorite : Icons.favorite_border,
+                                    size: 20,
+                                    color: isSaved ? Colors.redAccent : _navy,
+                                  ),
+                          ),
                         ),
-                        child: const Icon(Icons.favorite_border, size: 19, color: _navy),
                       ),
                     ),
                     if (listing.hasActiveDeal)
