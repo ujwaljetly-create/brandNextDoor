@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../models/listing_model.dart';
 
 class BuyerNotificationsScreen extends StatelessWidget {
   const BuyerNotificationsScreen({super.key});
@@ -69,6 +72,7 @@ class BuyerNotificationsScreen extends StatelessWidget {
                     final title = (data['title'] ?? 'Notification').toString();
                     final body = (data['body'] ?? '').toString();
                     final createdAt = data['createdAt'] as Timestamp?;
+                    final type = (data['type'] ?? '').toString();
 
                     return Material(
                       color: read ? Colors.white : const Color(0xFFFFF7E9),
@@ -80,7 +84,7 @@ class BuyerNotificationsScreen extends StatelessWidget {
                         leading: CircleAvatar(
                           backgroundColor: const Color(0xFFE8D4B8),
                           child: Icon(
-                            read ? Icons.notifications_none : Icons.notifications,
+                            _iconFor(type),
                             color: _navy,
                           ),
                         ),
@@ -111,6 +115,8 @@ class BuyerNotificationsScreen extends StatelessWidget {
                           if (!read) {
                             await doc.reference.update({'read': true});
                           }
+                          if (!context.mounted) return;
+                          await _openNotification(context, data);
                         },
                       ),
                     );
@@ -119,6 +125,42 @@ class BuyerNotificationsScreen extends StatelessWidget {
               },
             ),
     );
+  }
+
+  Future<void> _openNotification(
+    BuildContext context,
+    Map<String, dynamic> data,
+  ) async {
+    final type = (data['type'] ?? '').toString();
+    final listingId = (data['listingId'] ?? '').toString();
+
+    if ((type == 'seller_new_listing' || type == 'seller_new_deal') &&
+        listingId.isNotEmpty) {
+      final doc = await FirebaseFirestore.instance
+          .collection('listings')
+          .doc(listingId)
+          .get();
+      if (!doc.exists || !context.mounted) return;
+      context.push('/listing-details', extra: ListingModel.fromMap(doc.data()!));
+      return;
+    }
+
+    if (type == 'chat_message') {
+      context.push('/messages');
+      return;
+    }
+
+    if (type == 'order_status') {
+      context.push('/buyer-orders');
+    }
+  }
+
+  IconData _iconFor(String type) {
+    if (type == 'seller_new_deal') return Icons.local_offer_outlined;
+    if (type == 'seller_new_listing') return Icons.storefront_outlined;
+    if (type == 'chat_message') return Icons.chat_bubble_outline;
+    if (type == 'order_status') return Icons.receipt_long_outlined;
+    return Icons.notifications_none;
   }
 
   String _formatTime(DateTime date) {
