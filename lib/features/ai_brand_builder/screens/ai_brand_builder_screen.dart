@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../widgets/city_picker_sheet.dart';
+import '../models/generated_brand_model.dart';
 import '../services/ai_brand_service.dart';
 
 class AIBrandBuilderScreen extends StatefulWidget {
@@ -20,7 +22,7 @@ class _AIBrandBuilderScreenState extends State<AIBrandBuilderScreen> {
 
   final businessNameController = TextEditingController();
   final descriptionController = TextEditingController();
-  final locationController = TextEditingController(text: 'Toronto, ON');
+  final locationController = TextEditingController();
 
   String businessType = 'Fashion & Accessories';
   bool useAi = true;
@@ -46,18 +48,34 @@ class _AIBrandBuilderScreenState extends State<AIBrandBuilderScreen> {
     super.dispose();
   }
 
+  Future<void> _chooseCity() async {
+    final result = await CityPickerSheet.show(
+      context,
+      initialCity: locationController.text.trim(),
+    );
+    if (result != null) {
+      locationController.text = result.city;
+      if (mounted) setState(() {});
+    }
+  }
+
   Future<void> generateBrand() async {
     if (businessNameController.text.trim().isEmpty ||
-        descriptionController.text.trim().isEmpty) {
+        descriptionController.text.trim().isEmpty ||
+        locationController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add your business name and description.')),
+        const SnackBar(
+          content: Text('Please add your business name, description, and city.'),
+        ),
       );
       return;
     }
 
     if (logoChoice == 'upload' && selectedLogo == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Choose a logo image or switch to AI generated logo.')),
+        const SnackBar(
+          content: Text('Choose a logo image or switch to AI generated logo.'),
+        ),
       );
       return;
     }
@@ -65,16 +83,29 @@ class _AIBrandBuilderScreenState extends State<AIBrandBuilderScreen> {
     setState(() => isLoading = true);
 
     try {
+      final city = locationController.text.trim();
       final info = '''
 Business name: ${businessNameController.text.trim()}
 Business type: $businessType
 Description: ${descriptionController.text.trim()}
-Location: ${locationController.text.trim()}
+Location: $city
 Logo preference: ${logoChoice == 'ai' ? 'AI generated logo' : 'Seller provided logo'}
 Create a complete, premium local brand identity.
 ''';
 
-      final result = await AIBrandService().generateBrand(businessInfo: info);
+      final generated = await AIBrandService().generateBrand(businessInfo: info);
+      final result = GeneratedBrandModel(
+        brandId: generated.brandId,
+        brandName: generated.brandName,
+        tagline: generated.tagline,
+        description: generated.description,
+        colors: generated.colors,
+        personalityTraits: generated.personalityTraits,
+        targetAudience: generated.targetAudience,
+        brandScore: generated.brandScore,
+        city: city,
+      );
+
       if (!mounted) return;
       context.push(
         '/ai-brand-studio',
@@ -105,7 +136,8 @@ Create a complete, premium local brand identity.
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: _navy),
-          onPressed: () => context.canPop() ? context.pop() : context.go('/seller-onboarding'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/seller-onboarding'),
         ),
       ),
       body: SafeArea(
@@ -147,7 +179,11 @@ Create a complete, premium local brand identity.
                                   : null,
                             ),
                             child: selectedLogo == null
-                                ? const Icon(Icons.add_a_photo_outlined, color: _navy, size: 34)
+                                ? const Icon(
+                                    Icons.add_a_photo_outlined,
+                                    color: _navy,
+                                    size: 34,
+                                  )
                                 : null,
                           ),
                           const SizedBox(height: 8),
@@ -157,7 +193,10 @@ Create a complete, premium local brand identity.
                                 : selectedLogo == null
                                     ? 'Upload your logo'
                                     : 'Logo selected',
-                            style: const TextStyle(color: _navy, fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                              color: _navy,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           TextButton(
                             onPressed: _chooseLogo,
@@ -176,11 +215,20 @@ Create a complete, premium local brand identity.
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     value: businessType,
-                    decoration: _decoration('Business Type', Icons.category_outlined),
+                    decoration: _decoration(
+                      'Business Type',
+                      Icons.category_outlined,
+                    ),
                     items: businessTypes
-                        .map((type) => DropdownMenuItem(value: type, child: Text(type)))
+                        .map(
+                          (type) => DropdownMenuItem(
+                            value: type,
+                            child: Text(type),
+                          ),
+                        )
                         .toList(),
-                    onChanged: (value) => setState(() => businessType = value ?? businessType),
+                    onChanged: (value) =>
+                        setState(() => businessType = value ?? businessType),
                   ),
                   const SizedBox(height: 12),
                   _field(
@@ -190,10 +238,21 @@ Create a complete, premium local brand identity.
                     maxLines: 3,
                   ),
                   const SizedBox(height: 12),
-                  _field(
-                    controller: locationController,
-                    label: 'Location',
-                    icon: Icons.location_on_outlined,
+                  InkWell(
+                    onTap: _chooseCity,
+                    borderRadius: BorderRadius.circular(14),
+                    child: IgnorePointer(
+                      child: TextFormField(
+                        controller: locationController,
+                        decoration: _decoration(
+                          'City',
+                          Icons.location_on_outlined,
+                        ).copyWith(
+                          hintText: 'Use GPS or search for a city',
+                          suffixIcon: const Icon(Icons.map_outlined),
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 18),
                   Container(
@@ -209,9 +268,21 @@ Create a complete, premium local brand identity.
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Use AI to build my brand', style: TextStyle(color: _navy, fontWeight: FontWeight.w700)),
+                              Text(
+                                'Use AI to build my brand',
+                                style: TextStyle(
+                                  color: _navy,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                               SizedBox(height: 4),
-                              Text('Let our AI create a complete identity based on your details.', style: TextStyle(color: Color(0xFF66727A), fontSize: 12)),
+                              Text(
+                                'Let our AI create a complete identity based on your details.',
+                                style: TextStyle(
+                                  color: Color(0xFF66727A),
+                                  fontSize: 12,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -235,9 +306,13 @@ Create a complete, premium local brand identity.
                   style: FilledButton.styleFrom(
                     backgroundColor: _gold,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  onPressed: useAi ? generateBrand : () => context.push('/brand-profile'),
+                  onPressed: useAi
+                      ? generateBrand
+                      : () => context.push('/brand-profile'),
                   child: Text(
                     useAi ? 'Build My Brand' : 'Continue Manually',
                     style: const TextStyle(fontWeight: FontWeight.w700),
@@ -266,13 +341,21 @@ Create a complete, premium local brand identity.
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: _gold, width: 5),
-                  gradient: const RadialGradient(colors: [Colors.white, Color(0xFFF4E9DB)]),
+                  gradient: const RadialGradient(
+                    colors: [Colors.white, Color(0xFFF4E9DB)],
+                  ),
                 ),
                 child: const Center(
                   child: Text(
                     'Let AI\ndo the rest',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: _navy, fontFamily: 'serif', fontSize: 29, height: 1.05, fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                      color: _navy,
+                      fontFamily: 'serif',
+                      fontSize: 29,
+                      height: 1.05,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),
@@ -283,7 +366,10 @@ Create a complete, premium local brand identity.
                 style: TextStyle(color: _navy, fontSize: 17, height: 1.45),
               ),
               const SizedBox(height: 30),
-              const LinearProgressIndicator(color: _gold, backgroundColor: Color(0xFFE9DED0)),
+              const LinearProgressIndicator(
+                color: _gold,
+                backgroundColor: Color(0xFFE9DED0),
+              ),
               const SizedBox(height: 28),
               const _ProgressLine('Analyzing your business details'),
               const _ProgressLine('Generating brand identity'),
@@ -317,8 +403,14 @@ Create a complete, premium local brand identity.
       prefixIcon: Icon(icon, color: _navy),
       filled: true,
       fillColor: Colors.white,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE4DDD2))),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE4DDD2))),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFE4DDD2)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFE4DDD2)),
+      ),
     );
   }
 
@@ -332,12 +424,17 @@ Create a complete, premium local brand identity.
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('How would you like to create your logo?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              const Text(
+                'How would you like to create your logo?',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
               const SizedBox(height: 16),
               ListTile(
                 leading: const Icon(Icons.auto_awesome),
                 title: const Text('Let AI generate it'),
-                subtitle: const Text('Generate a logo after your brand identity is ready.'),
+                subtitle: const Text(
+                  'Generate a logo after your brand identity is ready.',
+                ),
                 onTap: () => Navigator.pop(context, 'ai'),
               ),
               ListTile(
@@ -382,7 +479,13 @@ class _ProgressLine extends StatelessWidget {
         children: [
           const Icon(Icons.check_circle, color: Color(0xFFC99245), size: 20),
           const SizedBox(width: 10),
-          Text(text, style: const TextStyle(color: Color(0xFF0C2430), fontWeight: FontWeight.w600)),
+          Text(
+            text,
+            style: const TextStyle(
+              color: Color(0xFF0C2430),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
