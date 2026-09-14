@@ -111,7 +111,9 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
               ListTile(
                 leading: const Icon(Icons.share_outlined, color: _gold),
                 title: const Text('Share via WhatsApp or other apps'),
-                subtitle: const Text('Choose WhatsApp, Messages, email, or another installed app.'),
+                subtitle: const Text(
+                  'Choose WhatsApp, Messages, email, or another installed app.',
+                ),
                 onTap: () async {
                   if (sheetContext.mounted) Navigator.pop(sheetContext);
                   await Share.share(_shareText, subject: listing.title);
@@ -234,7 +236,9 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
                         children: [
                           const Icon(Icons.star, size: 17, color: _gold),
                           const SizedBox(width: 4),
-                          Text('${listing.rating.toStringAsFixed(1)} (${listing.reviewCount} reviews)'),
+                          Text(
+                            '${listing.rating.toStringAsFixed(1)} (${listing.reviewCount} reviews)',
+                          ),
                         ],
                       )
                     else
@@ -244,7 +248,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
               ),
               const SizedBox(width: 14),
               Text(
-                '\$${listing.currentPrice.toStringAsFixed(0)}',
+                '\$${listing.currentPrice.toStringAsFixed(2)}',
                 style: const TextStyle(
                   color: _navy,
                   fontSize: 28,
@@ -302,9 +306,15 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
                   listing.city.isEmpty ? 'Nearby' : listing.city,
                 ),
                 if (listing.pickupAvailable)
-                  _detailRow(Icons.storefront_outlined, 'Available for pickup today'),
+                  _detailRow(
+                    Icons.storefront_outlined,
+                    'Available for pickup today',
+                  ),
                 if (listing.deliveryAvailable)
-                  _detailRow(Icons.local_shipping_outlined, 'Local delivery available'),
+                  _detailRow(
+                    Icons.local_shipping_outlined,
+                    'Local delivery available',
+                  ),
               ],
             ),
           ),
@@ -397,7 +407,9 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
         children: [
           Icon(icon, size: 20, color: _navy),
           const SizedBox(width: 10),
-          Expanded(child: Text(text, style: const TextStyle(color: _navy))),
+          Expanded(
+            child: Text(text, style: const TextStyle(color: _navy)),
+          ),
         ],
       ),
     );
