@@ -123,6 +123,15 @@ class _BuyerHomeScreenState extends ConsumerState<BuyerHomeScreen> {
     final name = (brand?['brandName'] ?? '').toString().trim();
     final logo = (brand?['logoUrl'] ?? '').toString().trim();
     if (snapshot.connectionState == ConnectionState.done && (name.isEmpty || name.toLowerCase() == 'local brand')) return const SizedBox.shrink();
-    return InkWell(onTap: () => context.push('/seller-storefront?sellerId=${listing.sellerId}&brandId=${listing.brandId}'), child: Container(width: 135, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE6DED2))), child: Column(children: [CircleAvatar(radius: 36, backgroundColor: const Color(0xFFF1E7D8), backgroundImage: logo.isNotEmpty ? NetworkImage(logo) : null, child: logo.isEmpty ? const Icon(Icons.storefront_outlined, color: navy) : null), const SizedBox(height: 9), Text(name.isEmpty ? 'Loading...' : name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: navy, fontWeight: FontWeight.w700)), if (listing.city.isNotEmpty) Text(listing.city, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF7A858B), fontSize: 11))])));
+    return InkWell(
+      onTap: () => context.push(
+        '/seller-storefront',
+        extra: <String, dynamic>{
+          'sellerId': listing.sellerId,
+          'brandId': listing.brandId,
+        },
+      ),
+      child: Container(width: 135, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE6DED2))), child: Column(children: [CircleAvatar(radius: 36, backgroundColor: const Color(0xFFF1E7D8), backgroundImage: logo.isNotEmpty ? NetworkImage(logo) : null, child: logo.isEmpty ? const Icon(Icons.storefront_outlined, color: navy) : null), const SizedBox(height: 9), Text(name.isEmpty ? 'Loading...' : name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: navy, fontWeight: FontWeight.w700)), if (listing.city.isNotEmpty) Text(listing.city, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF7A858B), fontSize: 11))])),
+    );
   });
 }
