@@ -1,85 +1,110 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../models/listing_model.dart';
-import '../../listings/screens/product_details_screen.dart';
+import '../../brand/services/brand_service.dart';
+import '../services/buyer_activity_service.dart';
+import '../services/saved_items_service.dart';
 
-class ProductCard
-    extends StatelessWidget {
+class ProductCard extends StatefulWidget {
   final ListingModel listing;
-
-  const ProductCard({
-    super.key,
-    required this.listing,
-  });
+  const ProductCard({super.key, required this.listing});
 
   @override
-  Widget build(
-      BuildContext context) {
-    return InkWell(
-      onTap: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => ProductDetailsScreen(
-        listing: listing,
-      ),
-    ),
-  );
-},
-      child: Container(
-        width: 180,
-        decoration: BoxDecoration(
-          borderRadius:
-              BorderRadius.circular(20),
-          color: const Color(
-            0xff1A1A1A,
-          ),
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius:
-                    const BorderRadius
-                        .vertical(
-                  top: Radius.circular(
-                    20,
-                  ),
-                ),
-                child: Image.network(
-                  listing.images.first,
-                  fit: BoxFit.cover,
-                  width:
-                      double.infinity,
-                ),
-              ),
-            ),
-            Padding(
-              padding:
-                  const EdgeInsets.all(
-                12,
-              ),
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
-                children: [
-                  Text(
-                    listing.title,
-                    maxLines: 1,
-                  ),
-                  const SizedBox(
-                    height: 6,
-                  ),
-                  Text(
-                    '\$${listing.price}',
-                  ),
-                ],
-              ),
-            ),
-          ],
+  State<ProductCard> createState() => _ProductCardState();
+}
+
+class _ProductCardState extends State<ProductCard> {
+  static const _navy = Color(0xFF0C2430);
+  static const _gold = Color(0xFFC99245);
+  static final Map<String, String> _brandCache = {};
+  final SavedItemsService _savedItemsService = SavedItemsService();
+  String brandName = '';
+  bool isSaved = false;
+  bool saving = false;
+  ListingModel get listing => widget.listing;
+
+  @override
+  void initState() { super.initState(); _loadBrandName(); _loadSavedState(); }
+
+  @override
+  void didUpdateWidget(covariant ProductCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.listing.brandId != widget.listing.brandId) { brandName = ''; _loadBrandName(); }
+    if (oldWidget.listing.listingId != widget.listing.listingId) { isSaved = false; _loadSavedState(); }
+  }
+
+  Future<void> _loadBrandName() async {
+    if (listing.brandId.isEmpty) return;
+    final cached = _brandCache[listing.brandId];
+    if (cached != null) { if (mounted) setState(() => brandName = cached); return; }
+    try {
+      final brand = await BrandService().getBrand(listing.brandId);
+      final name = (brand?['brandName'] ?? '').toString().trim();
+      if (name.isNotEmpty) _brandCache[listing.brandId] = name;
+      if (mounted) setState(() => brandName = name);
+    } catch (_) {}
+  }
+
+  Future<void> _loadSavedState() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    try {
+      final saved = await _savedItemsService.isSaved(uid: user.uid, listingId: listing.listingId);
+      if (mounted) setState(() => isSaved = saved);
+    } catch (_) {}
+  }
+
+  Future<void> _toggleSaved() async {
+    if (saving) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please sign in to save items.'))); return; }
+    setState(() => saving = true);
+    try {
+      final saved = await _savedItemsService.toggle(uid: user.uid, listing: listing);
+      if (!mounted) return;
+      setState(() => isSaved = saved);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(saved ? 'Saved to your items.' : 'Removed from saved items.')));
+    } finally { if (mounted) setState(() => saving = false); }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () async {
+          try { await BuyerActivityService().recordListingView(listing); } catch (_) {}
+          if (context.mounted) context.push('/listing-details', extra: listing);
+        },
+        child: Container(
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE9E1D5))),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: Stack(fit: StackFit.expand, children: [
+              ClipRRect(borderRadius: const BorderRadius.vertical(top: Radius.circular(18)), child: listing.images.isNotEmpty ? Image.network(listing.images.first, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _placeholder()) : _placeholder()),
+              Positioned(top: 8, right: 8, child: Material(color: Colors.white.withValues(alpha: .92), shape: const CircleBorder(), child: InkWell(customBorder: const CircleBorder(), onTap: _toggleSaved, child: SizedBox(width: 34, height: 34, child: saving ? const Padding(padding: EdgeInsets.all(9), child: CircularProgressIndicator(strokeWidth: 2)) : Icon(isSaved ? Icons.favorite : Icons.favorite_border, size: 20, color: isSaved ? Colors.redAccent : _navy))))),
+              if (listing.hasActiveDeal) Positioned(left: 8, top: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5), decoration: BoxDecoration(color: _gold, borderRadius: BorderRadius.circular(18)), child: Text('${listing.discountPercent}% OFF', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)))),
+            ])),
+            Padding(padding: const EdgeInsets.all(11), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (listing.city.isNotEmpty) Text(listing.city.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF7E898F), fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: .8)),
+              Text(listing.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _navy, fontSize: 14, fontWeight: FontWeight.w700)),
+              if (brandName.isNotEmpty) ...[const SizedBox(height: 2), Text('by $brandName', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF7A858B), fontSize: 10.5, fontWeight: FontWeight.w500))],
+              const SizedBox(height: 5),
+              Row(children: [
+                Text('\$${listing.currentPrice.toStringAsFixed(2)}', style: const TextStyle(color: _navy, fontSize: 15, fontWeight: FontWeight.w800)),
+                if (listing.hasActiveDeal) ...[const SizedBox(width: 6), Text('\$${listing.price.toStringAsFixed(2)}', style: const TextStyle(color: Colors.grey, fontSize: 11, decoration: TextDecoration.lineThrough))],
+                const Spacer(),
+                if (listing.rating > 0) ...[const Icon(Icons.star, size: 13, color: _gold), const SizedBox(width: 2), Text(listing.rating.toStringAsFixed(1), style: const TextStyle(fontSize: 11))],
+              ]),
+            ])),
+          ]),
         ),
       ),
     );
   }
+
+  Widget _placeholder() => Container(color: const Color(0xFFF1ECE4), child: const Center(child: Icon(Icons.image_outlined, color: _navy, size: 38)));
 }
