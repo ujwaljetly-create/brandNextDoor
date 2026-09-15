@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../models/user_model.dart';
 import '../../../services/user_service.dart';
+import '../../brand/services/brand_service.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   final String role;
@@ -13,7 +14,7 @@ class AccountSettingsScreen extends StatefulWidget {
 }
 
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
-  static const _navy = Color(0xFF0C2430), _gold = Color(0xFFC99245), _cream = Color(0xFFF8F3EA);
+  static const _navy = Color(0xFF0C2430), _cream = Color(0xFFF8F3EA);
   final _nameController = TextEditingController();
   bool _isLoading = true, _isSaving = false;
   UserModel? _appUser;
@@ -44,19 +45,25 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Future<void> _openSellerAccount() async {
-    final user = _firebaseUser;
-    if (user == null) return;
     if (!_hasSellerRole) {
-      try {
-        await UserService().addRole(uid: user.uid, role: 'seller');
-        await _loadUser();
-        if (!mounted) return;
-        _message('Seller account enabled. Set up your brand to start selling.');
-        context.go('/seller-onboarding');
-      } catch (e) { if (mounted) _message('Could not enable seller account: $e'); }
+      // Do not grant the seller role merely for viewing onboarding. The user
+      // becomes a seller only after explicitly creating the seller account.
+      await context.push('/seller-onboarding');
+      if (mounted) await _loadUser();
       return;
     }
-    if (mounted) context.go('/seller-dashboard');
+
+    try {
+      final brand = await BrandService().getSellerBrand();
+      if (!mounted) return;
+      if (brand == null) {
+        context.push('/seller-onboarding');
+      } else {
+        context.go('/seller-dashboard');
+      }
+    } catch (e) {
+      if (mounted) _message('Could not open seller account: $e');
+    }
   }
 
   Future<void> _sendPasswordReset() async {
