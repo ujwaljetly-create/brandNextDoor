@@ -21,42 +21,42 @@ class AuthGate extends StatelessWidget {
       future: UserService().getUser(user.uid),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
-        if (!snapshot.hasData || snapshot.data == null) {
-          return const WelcomeScreen();
+
+        final appUser = snapshot.data;
+        if (appUser == null) return const WelcomeScreen();
+
+        // Every account with buyer access launches into the buyer experience.
+        // Seller onboarding is never selected automatically for a buyer.
+        if (appUser.isBuyer) return const BuyerHomeScreen();
+
+        // Keep support for legacy seller-only accounts.
+        if (appUser.isSeller) {
+          return FutureBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            future: FirebaseFirestore.instance
+                .collection('brands')
+                .where('sellerId', isEqualTo: appUser.uid)
+                .limit(1)
+                .get(),
+            builder: (context, brandSnapshot) {
+              if (brandSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              final hasBrand = brandSnapshot.data?.docs.isNotEmpty ?? false;
+              return hasBrand
+                  ? const SellerDashboardScreen()
+                  : const SellerOnboardingScreen();
+            },
+          );
         }
 
-        final appUser = snapshot.data!;
-        final isBuyer = appUser.roles.contains('buyer');
-        final isSeller = appUser.roles.contains('seller');
-
-        if (!isSeller) return const BuyerHomeScreen();
-
-        return FutureBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          future: FirebaseFirestore.instance
-              .collection('brands')
-              .where('sellerId', isEqualTo: appUser.uid)
-              .limit(1)
-              .get(),
-          builder: (context, brandSnapshot) {
-            if (brandSnapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(body: Center(child: CircularProgressIndicator()));
-            }
-
-            final hasBrand = brandSnapshot.data?.docs.isNotEmpty ?? false;
-
-            // A seller account is not ready for the seller portal until its
-            // first brand has been created.
-            if (!hasBrand) return const SellerOnboardingScreen();
-
-            // Dual-role users launch into shopping. They can enter their seller
-            // portal from Profile > Go to Seller Account. Seller-only legacy
-            // accounts continue to launch into the seller dashboard.
-            if (isBuyer) return const BuyerHomeScreen();
-            return const SellerDashboardScreen();
-          },
-        );
+        return const BuyerHomeScreen();
       },
     );
   }
