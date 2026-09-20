@@ -74,6 +74,7 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
+      backgroundColor: _cream,
       builder: (context) => Padding(
         padding: EdgeInsets.fromLTRB(
           22,
@@ -376,6 +377,7 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
           const SizedBox(height: 10),
           if (widget.logoPreference == 'ai')
             OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(foregroundColor: _navy, side: const BorderSide(color: _gold)),
               onPressed: isSaving ? null : _generateLogo,
               icon: const Icon(Icons.auto_awesome),
               label: const Text('Generate Logo with AI'),
