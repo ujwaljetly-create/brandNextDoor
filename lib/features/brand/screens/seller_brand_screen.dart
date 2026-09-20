@@ -124,12 +124,14 @@ class _SellerBrandScreenState extends State<SellerBrandScreen> {
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(foregroundColor: _navy, side: const BorderSide(color: _gold)),
             onPressed: () => context.push('/create-listing'),
             icon: const Icon(Icons.add),
             label: const Text('Add Product'),
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(foregroundColor: _navy, side: const BorderSide(color: _gold)),
             onPressed: () {
               final generatedBrand = GeneratedBrandModel(
                 brandId: brand!['brandId'] ?? '',
@@ -139,9 +141,13 @@ class _SellerBrandScreenState extends State<SellerBrandScreen> {
                 colors: List<String>.from(brand!['colors'] ?? []),
                 personalityTraits: List<String>.from(brand!['personalityTraits'] ?? []),
                 targetAudience: List<String>.from(brand!['targetAudience'] ?? []),
-                brandScore: brand!['brandScore'] ?? 90,
+                brandScore: (brand!['brandScore'] as num?)?.toInt() ?? 90,
+                city: (brand!['city'] ?? '').toString(),
+                category: (brand!['category'] ?? '').toString(),
               );
-              context.push('/ai-logo-generation', extra: generatedBrand);
+              context.push('/ai-logo-generation', extra: generatedBrand).then((result) {
+                if (result == true) loadBrand();
+              });
             },
             icon: const Icon(Icons.auto_awesome),
             label: const Text('Generate AI Logo'),
