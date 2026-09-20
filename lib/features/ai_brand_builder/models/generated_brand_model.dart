@@ -8,6 +8,7 @@ class GeneratedBrandModel {
   final int brandScore;
   final String? brandId;
   final String city;
+  final String category;
 
   GeneratedBrandModel({
     this.brandId,
@@ -19,19 +20,21 @@ class GeneratedBrandModel {
     required this.targetAudience,
     required this.brandScore,
     this.city = '',
+    this.category = '',
   });
 
   factory GeneratedBrandModel.fromJson(Map<String, dynamic> json) {
     return GeneratedBrandModel(
-      brandId: json['brandId'],
-      brandName: json['brandName'] ?? '',
-      tagline: json['tagline'] ?? '',
-      description: json['description'] ?? '',
-      colors: List<String>.from(json['colors'] ?? []),
-      personalityTraits: List<String>.from(json['personalityTraits'] ?? []),
-      targetAudience: List<String>.from(json['targetAudience'] ?? []),
-      brandScore: json['brandScore'] ?? 0,
+      brandId: json['brandId']?.toString(),
+      brandName: (json['brandName'] ?? '').toString(),
+      tagline: (json['tagline'] ?? '').toString(),
+      description: (json['description'] ?? '').toString(),
+      colors: List<String>.from(json['colors'] ?? const []),
+      personalityTraits: List<String>.from(json['personalityTraits'] ?? const []),
+      targetAudience: List<String>.from(json['targetAudience'] ?? const []),
+      brandScore: (json['brandScore'] as num?)?.toInt() ?? 0,
       city: (json['city'] ?? '').toString(),
+      category: (json['category'] ?? json['businessType'] ?? '').toString(),
     );
   }
 }
