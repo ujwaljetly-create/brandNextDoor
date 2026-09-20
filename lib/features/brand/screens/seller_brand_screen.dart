@@ -57,6 +57,7 @@ class _SellerBrandScreenState extends State<SellerBrandScreen> {
     final logoUrl = (brand!['logoUrl'] ?? '').toString();
     final colors = ((brand!['colors'] as List?) ?? []).map((e) => e.toString()).toList();
     final personality = ((brand!['personalityTraits'] as List?) ?? []).map((e) => e.toString()).toList();
+    final colorNames = colors.map(_colorName).toList();
 
     return Scaffold(
       backgroundColor: _cream,
@@ -108,7 +109,7 @@ class _SellerBrandScreenState extends State<SellerBrandScreen> {
           const SizedBox(height: 18),
           Text((brand!['description'] ?? '').toString(), style: const TextStyle(color: _navy, fontSize: 15, height: 1.55)),
           const SizedBox(height: 24),
-          _section('Brand Colors', Wrap(spacing: 8, runSpacing: 8, children: colors.map((c) => Chip(label: Text(c), backgroundColor: const Color(0xFFF1E7D8))).toList())),
+          _section('Brand Colors', Wrap(spacing: 8, runSpacing: 8, children: List.generate(colors.length, (i) => Chip(avatar: CircleAvatar(backgroundColor: _parseColor(colors[i])), label: Text(colorNames[i]), backgroundColor: const Color(0xFFF1E7D8))))),
           _section('Personality', Wrap(spacing: 8, runSpacing: 8, children: personality.map((p) => Chip(label: Text(p))).toList())),
           const SizedBox(height: 8),
           SizedBox(
@@ -155,6 +156,54 @@ class _SellerBrandScreenState extends State<SellerBrandScreen> {
         ],
       ),
     );
+  }
+
+  Color _parseColor(String value) {
+    final hex = value.replaceAll('#', '').trim();
+    if (RegExp(r'^[0-9A-Fa-f]{6} Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE6DED2))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: _navy, fontSize: 17, fontWeight: FontWeight.w800)), const SizedBox(height: 10), child]),
+      );
+}
+).hasMatch(hex)) {
+      return Color(int.parse('FF$hex', radix: 16));
+    }
+    return _navy;
+  }
+
+  String _colorName(String value) {
+    final hex = value.replaceAll('#', '').trim();
+    if (!RegExp(r'^[0-9A-Fa-f]{6} Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE6DED2))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: _navy, fontSize: 17, fontWeight: FontWeight.w800)), const SizedBox(height: 10), child]),
+      );
+}
+).hasMatch(hex)) return value;
+    final color = Color(int.parse('FF$hex', radix: 16));
+    final r = color.red, g = color.green, b = color.blue;
+    final maxV = [r, g, b].reduce((a, b) => a > b ? a : b);
+    final minV = [r, g, b].reduce((a, b) => a < b ? a : b);
+    if (maxV - minV < 22) {
+      if (maxV < 55) return 'Black';
+      if (maxV < 125) return 'Charcoal';
+      if (maxV < 205) return 'Grey';
+      return 'Ivory';
+    }
+    if (r > 180 && g > 150 && b < 120) return 'Gold';
+    if (r > 180 && g < 130 && b < 130) return 'Red';
+    if (r > 190 && g > 100 && b < 100) return 'Orange';
+    if (r > 170 && b > 150 && g < 170) return 'Pink';
+    if (r > 110 && b > 130 && g < 130) return 'Purple';
+    if (b > r && b > g) return b > 150 ? 'Blue' : 'Navy';
+    if (g > r && g > b) return g > 145 ? 'Green' : 'Forest Green';
+    if (r > 120 && g > 75 && b < 80) return 'Brown';
+    return 'Custom';
   }
 
   Widget _section(String title, Widget child) => Container(
