@@ -66,7 +66,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         selectedCategory = _mapBrandCategory(generated.category);
       }
     }
-    _loadBrandCity();
+    _loadBrandDefaults();
   }
 
   String _mapBrandCategory(String value) {
@@ -79,12 +79,20 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     return 'Fashion';
   }
 
-  Future<void> _loadBrandCity() async {
+  Future<void> _loadBrandDefaults() async {
     try {
       final brand = await BrandService().getSellerBrand();
-      if (!mounted || cityController.text.trim().isNotEmpty) return;
-      final city = (brand?['city'] ?? '').toString().trim();
-      if (city.isNotEmpty) cityController.text = city;
+      if (!mounted || brand == null) return;
+      final city = (brand['city'] ?? '').toString().trim();
+      final category = (brand['category'] ?? '').toString().trim();
+      setState(() {
+        if (cityController.text.trim().isEmpty && city.isNotEmpty) {
+          cityController.text = city;
+        }
+        if (category.isNotEmpty) {
+          selectedCategory = _mapBrandCategory(category);
+        }
+      });
     } catch (_) {}
   }
 
