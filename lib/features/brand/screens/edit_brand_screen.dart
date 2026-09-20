@@ -56,8 +56,8 @@ class _EditBrandScreenState extends State<EditBrandScreen> {
       text: (widget.brand['city'] ?? '').toString(),
     );
     selectedColors = List<String>.from(widget.brand['colors'] ?? const <String>[])
-        .where((color) => _palette.containsValue(color.toUpperCase()))
-        .map((color) => color.toUpperCase())
+        .where((color) => _palette.values.any((v) => v.toUpperCase() == color.toUpperCase()))
+        .map((color) => _palette.values.firstWhere((v) => v.toUpperCase() == color.toUpperCase()))
         .take(3)
         .toList();
   }
