@@ -62,8 +62,21 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       titleController.text = generated.title;
       descriptionController.text = generated.description;
       priceController.text = generated.suggestedPrice.toStringAsFixed(2);
+      if (generated.category.isNotEmpty) {
+        selectedCategory = _mapBrandCategory(generated.category);
+      }
     }
     _loadBrandCity();
+  }
+
+  String _mapBrandCategory(String value) {
+    final v = value.toLowerCase();
+    if (v.contains('food') || v.contains('beverage')) return 'Food';
+    if (v.contains('beauty') || v.contains('wellness')) return 'Beauty';
+    if (v.contains('home') || v.contains('decor')) return 'Home Decor';
+    if (v.contains('service')) return 'Services';
+    if (v.contains('electronic')) return 'Electronics';
+    return 'Fashion';
   }
 
   Future<void> _loadBrandCity() async {
