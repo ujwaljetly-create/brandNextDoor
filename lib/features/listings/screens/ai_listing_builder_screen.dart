@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../brand/services/brand_service.dart';
 import '../models/generated_listing_model.dart';
 import '../services/ai_listing_service.dart';
 
@@ -18,6 +19,19 @@ class _AIListingBuilderScreenState extends State<AIListingBuilderScreen> {
 
   final descriptionController = TextEditingController();
   bool isGenerating = false;
+  String brandCategory = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBrandCategory();
+  }
+
+  Future<void> _loadBrandCategory() async {
+    final brand = await BrandService().getSellerBrand();
+    if (!mounted) return;
+    setState(() => brandCategory = (brand?['category'] ?? '').toString());
+  }
 
   Future<void> generateListing() async {
     if (descriptionController.text.trim().isEmpty) {
@@ -31,8 +45,9 @@ class _AIListingBuilderScreenState extends State<AIListingBuilderScreen> {
     try {
       final GeneratedListingModel listing =
           await AIListingService().generateListing(descriptionController.text.trim());
+      final categorizedListing = listing.copyWith(category: brandCategory);
       if (!mounted) return;
-      context.push('/ai-listing-result', extra: listing);
+      context.push('/ai-listing-result', extra: categorizedListing);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
@@ -79,7 +94,20 @@ class _AIListingBuilderScreenState extends State<AIListingBuilderScreen> {
                     'Share the basics and AI will create a polished local-market listing with title, description, tags and pricing guidance.',
                     style: TextStyle(color: Color(0xFF66727A), fontSize: 15, height: 1.45),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 20),
+                  if (brandCategory.isNotEmpty) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(color: const Color(0xFFF1E7D8), borderRadius: BorderRadius.circular(14)),
+                      child: Row(children: [
+                        const Icon(Icons.category_outlined, color: _gold),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text('Brand category: $brandCategory', style: const TextStyle(color: _navy, fontWeight: FontWeight.w700))),
+                      ]),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
