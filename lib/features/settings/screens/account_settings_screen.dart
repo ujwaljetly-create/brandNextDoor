@@ -167,7 +167,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             _item(Icons.inventory_2_outlined, 'Manage Products', () => context.push('/my-listings')),
             _item(Icons.receipt_long_outlined, 'Received Orders', () => context.push('/seller-orders')),
             _item(Icons.people_outline, 'Followers', () => context.push('/seller-followers')),
-            _item(Icons.chat_bubble_outline, 'Messages', () => context.push('/messages')),
+            _item(Icons.chat_bubble_outline, 'Messages', () => context.push('/messages?role=${widget.role}')),
             _item(Icons.lock_reset, 'Reset Password', _sendPasswordReset),
             const SizedBox(height: 14),
             _signOutTile(),
