@@ -68,8 +68,12 @@ class ChatService {
     return firestore.collection('chats').doc(chatId).collection('messages').orderBy('timestamp').snapshots();
   }
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> getConversations(String userId) {
-    return firestore.collection('chats').where('participants', arrayContains: userId).snapshots();
+  Stream<QuerySnapshot<Map<String, dynamic>>> getConversations(
+    String userId, {
+    String role = 'buyer',
+  }) {
+    final field = role == 'seller' ? 'sellerId' : 'buyerId';
+    return firestore.collection('chats').where(field, isEqualTo: userId).snapshots();
   }
 
   Future<void> markMessagesRead({required String chatId, required String userId}) async {
