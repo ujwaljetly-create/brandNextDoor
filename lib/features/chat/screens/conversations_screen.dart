@@ -6,10 +6,12 @@ import '../services/chat_service.dart';
 import 'chat_screen.dart';
 
 class ConversationsScreen extends StatelessWidget {
-  const ConversationsScreen({super.key});
+  final String role;
+  const ConversationsScreen({super.key, this.role = 'buyer'});
 
   static const _navy = Color(0xFF0C2430);
   static const _cream = Color(0xFFF8F3EA);
+  static const _gold = Color(0xFFC99245);
 
   @override
   Widget build(BuildContext context) {
@@ -32,10 +34,10 @@ class ConversationsScreen extends StatelessWidget {
       body: user == null
           ? const Center(child: Text('Please sign in to view messages.'))
           : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: ChatService().getConversations(user.uid),
+              stream: ChatService().getConversations(user.uid, role: role),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator(color: _gold));
                 }
 
                 final docs = [...?snapshot.data?.docs];
@@ -51,7 +53,9 @@ class ConversationsScreen extends StatelessWidget {
                     child: Padding(
                       padding: EdgeInsets.all(28),
                       child: Text(
-                        'No conversations yet. Open a product and tap Message Seller to start one.',
+                        role == 'seller'
+                            ? 'No seller conversations yet. Buyer messages about your store and products will appear here.'
+                            : 'No buyer conversations yet. Open a product and tap Message Seller to start one.',
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -64,7 +68,7 @@ class ConversationsScreen extends StatelessWidget {
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final data = docs[index].data();
-                    final isBuyer = data['buyerId'] == user.uid;
+                    final isBuyer = role != 'seller';
                     final peerId = isBuyer
                         ? (data['sellerId'] ?? '').toString()
                         : (data['buyerId'] ?? '').toString();
