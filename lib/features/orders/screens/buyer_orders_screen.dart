@@ -11,6 +11,10 @@ import '../widgets/order_card.dart';
 class BuyerOrdersScreen extends StatelessWidget {
   const BuyerOrdersScreen({super.key});
 
+  static const _navy = Color(0xFF0C2430);
+  static const _gold = Color(0xFFC99245);
+  static const _cream = Color(0xFFF8F3EA);
+
   Future<void> _cancelOrder(
     BuildContext context,
     OrderModel order,
@@ -18,6 +22,9 @@ class BuyerOrdersScreen extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        backgroundColor: _cream,
+        surfaceTintColor: _cream,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Cancel order?'),
         content: const Text(
           'You can cancel only while the order is still awaiting seller acceptance.',
@@ -25,9 +32,11 @@ class BuyerOrdersScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
+            style: TextButton.styleFrom(foregroundColor: _navy),
             child: const Text('Keep Order'),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: _gold, foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(dialogContext, true),
             child: const Text('Cancel Order'),
           ),
@@ -143,14 +152,19 @@ class BuyerOrdersScreen extends StatelessWidget {
     }
 
     return Scaffold(
+      backgroundColor: _cream,
       appBar: AppBar(
-        title: const Text('My Orders'),
+        backgroundColor: _cream,
+        surfaceTintColor: _cream,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: _navy),
+        title: const Text('My Orders', style: TextStyle(color: _navy, fontFamily: 'serif', fontWeight: FontWeight.w700)),
       ),
       body: StreamBuilder<List<OrderModel>>(
         stream: OrderService().getBuyerOrders(user.uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: _gold));
           }
 
           if (snapshot.hasError) {
@@ -169,12 +183,21 @@ class BuyerOrdersScreen extends StatelessWidget {
 
           if (orders.isEmpty) {
             return const Center(
-              child: Text('You have not placed any orders yet.'),
+              child: Padding(
+                padding: EdgeInsets.all(28),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.shopping_bag_outlined, color: _gold, size: 52),
+                  SizedBox(height: 14),
+                  Text('No orders yet', style: TextStyle(color: _navy, fontFamily: 'serif', fontSize: 22, fontWeight: FontWeight.w700)),
+                  SizedBox(height: 6),
+                  Text('Your purchases from local brands will appear here.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF68747A))),
+                ]),
+              ),
             );
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
             itemCount: orders.length,
             itemBuilder: (context, index) {
               return _buildOrderCard(context, orders[index]);
