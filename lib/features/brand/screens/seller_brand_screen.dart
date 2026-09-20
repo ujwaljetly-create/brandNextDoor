@@ -124,16 +124,29 @@ class _SellerBrandScreenState extends State<SellerBrandScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(foregroundColor: _navy, side: const BorderSide(color: _gold)),
-            onPressed: () => context.push('/create-listing'),
-            icon: const Icon(Icons.add),
-            label: const Text('Add Product'),
+          SizedBox(
+            height: 52,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _navy,
+                side: const BorderSide(color: _gold),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () => context.push('/create-listing'),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Product', style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
           ),
           const SizedBox(height: 10),
-          OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(foregroundColor: _navy, side: const BorderSide(color: _gold)),
-            onPressed: () {
+          SizedBox(
+            height: 52,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _navy,
+                side: const BorderSide(color: _gold),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
               final generatedBrand = GeneratedBrandModel(
                 brandId: brand!['brandId'] ?? '',
                 brandName: brand!['brandName'] ?? '',
@@ -151,7 +164,8 @@ class _SellerBrandScreenState extends State<SellerBrandScreen> {
               });
             },
             icon: const Icon(Icons.auto_awesome),
-            label: const Text('Generate AI Logo'),
+              label: const Text('Generate AI Logo', style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
           ),
         ],
       ),
