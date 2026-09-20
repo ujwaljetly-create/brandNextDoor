@@ -289,28 +289,55 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Future<void> _editName() async {
-    final c = TextEditingController(text: _nameController.text);
+    final controller = TextEditingController(text: _nameController.text);
     final value = await showDialog<String>(
       context: context,
-      builder: (d) => AlertDialog(
-        title: const Text('Edit name'),
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: _cream,
+        surfaceTintColor: _cream,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Edit name',
+          style: TextStyle(color: _navy, fontFamily: 'serif', fontWeight: FontWeight.w700),
+        ),
         content: TextField(
-          controller: c,
-          decoration: const InputDecoration(labelText: 'Name'),
+          controller: controller,
+          style: const TextStyle(color: _navy),
+          decoration: InputDecoration(
+            labelText: 'Name',
+            filled: true,
+            fillColor: Colors.white,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE6DED2)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFC99245), width: 1.5),
+            ),
+          ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(d),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _navy,
+              side: const BorderSide(color: Color(0xFFC99245)),
+            ),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(d, c.text.trim()),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFC99245),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, controller.text.trim()),
             child: const Text('Save'),
           ),
         ],
       ),
     );
-    c.dispose();
+    controller.dispose();
     if (value == null || value.isEmpty) return;
     _nameController.text = value;
     await _saveName();
