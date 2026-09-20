@@ -62,6 +62,7 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
         targetAudience: audience,
         brandScore: widget.brand.brandScore,
         city: widget.brand.city,
+        category: widget.brand.category,
       );
 
   Future<void> _editBrand() async {
@@ -326,6 +327,7 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
             title: 'Tagline',
             action: TextButton(
               onPressed: isGenerating ? null : _regenerateTagline,
+              style: TextButton.styleFrom(foregroundColor: _gold),
               child: const Text('Try another'),
             ),
             child: Text(
@@ -341,6 +343,7 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
             title: 'Description',
             action: TextButton(
               onPressed: isGenerating ? null : _improveDescription,
+              style: TextButton.styleFrom(foregroundColor: _gold),
               child: const Text('Improve'),
             ),
             child: Text(
@@ -358,12 +361,14 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(foregroundColor: _navy, side: const BorderSide(color: _gold)),
             onPressed: isGenerating ? null : _regenerateName,
             icon: const Icon(Icons.refresh),
             label: const Text('Try Another Brand Name'),
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(foregroundColor: _navy, side: const BorderSide(color: _gold)),
             onPressed: _editBrand,
             icon: const Icon(Icons.edit_outlined),
             label: const Text('Edit Details'),
