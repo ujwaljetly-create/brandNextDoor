@@ -55,7 +55,11 @@ class _EditBrandScreenState extends State<EditBrandScreen> {
     cityController = TextEditingController(
       text: (widget.brand['city'] ?? '').toString(),
     );
-    selectedColors = List<String>.from(widget.brand['colors'] ?? const <String>[]);
+    selectedColors = List<String>.from(widget.brand['colors'] ?? const <String>[])
+        .where((color) => _palette.containsValue(color.toUpperCase()))
+        .map((color) => color.toUpperCase())
+        .take(3)
+        .toList();
   }
 
   Future<void> _chooseCity() async {
