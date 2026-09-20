@@ -175,7 +175,9 @@ class AppRouter {
       ),
       GoRoute(
         path: '/messages',
-        builder: (context, state) => const ConversationsScreen(),
+        builder: (context, state) => ConversationsScreen(
+          role: state.uri.queryParameters['role'] ?? 'buyer',
+        ),
       ),
       GoRoute(
         path: '/brand-profile',
