@@ -187,15 +187,19 @@ class AppRouter {
       ),
       GoRoute(
         path: '/brand-generation-result',
-        builder: (context, state) => BrandGenerationResultScreen(
-          brand: state.extra as GeneratedBrandModel,
-        ),
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is! GeneratedBrandModel) return const AIBrandBuilderScreen();
+          return BrandGenerationResultScreen(brand: extra);
+        },
       ),
       GoRoute(
         path: '/ai-logo-generation',
-        builder: (context, state) => AILogoGenerationScreen(
-          brand: state.extra as GeneratedBrandModel,
-        ),
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is! GeneratedBrandModel) return const SellerBrandScreen();
+          return AILogoGenerationScreen(brand: extra);
+        },
       ),
       GoRoute(
         path: '/ai-brand-studio',
@@ -204,11 +208,17 @@ class AppRouter {
           if (extra is GeneratedBrandModel) {
             return AIBrandStudioScreen(brand: extra);
           }
-          final data = extra as Map<String, dynamic>;
+          if (extra is! Map<String, dynamic>) {
+            return const AIBrandBuilderScreen();
+          }
+          final brand = extra['brand'];
+          if (brand is! GeneratedBrandModel) {
+            return const AIBrandBuilderScreen();
+          }
           return AIBrandStudioScreen(
-            brand: data['brand'] as GeneratedBrandModel,
-            logoPreference: (data['logoPreference'] ?? 'ai').toString(),
-            logoPath: data['logoPath']?.toString(),
+            brand: brand,
+            logoPreference: (extra['logoPreference'] ?? 'ai').toString(),
+            logoPath: extra['logoPath']?.toString(),
           );
         },
       ),
