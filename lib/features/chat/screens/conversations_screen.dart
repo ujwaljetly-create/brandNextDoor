@@ -49,9 +49,9 @@ class ConversationsScreen extends StatelessWidget {
                 });
 
                 if (docs.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Padding(
-                      padding: EdgeInsets.all(28),
+                      padding: const EdgeInsets.all(28),
                       child: Text(
                         role == 'seller'
                             ? 'No seller conversations yet. Buyer messages about your store and products will appear here.'
