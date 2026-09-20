@@ -103,7 +103,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
       ]))),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(backgroundColor: _gold, foregroundColor: Colors.white, onPressed: () => context.push('/create-listing'), child: const Icon(Icons.add)),
-      bottomNavigationBar: NavigationBar(backgroundColor: Colors.white, selectedIndex: 0, onDestinationSelected: (i) { if (i == 1) context.push('/seller-orders'); if (i == 2) context.push('/messages'); if (i == 3) context.push('/settings?role=seller'); }, destinations: const [NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'), NavigationDestination(icon: Icon(Icons.receipt_long_outlined), label: 'Orders'), NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: 'Messages'), NavigationDestination(icon: Icon(Icons.more_horiz), label: 'More')]),
+      bottomNavigationBar: NavigationBar(backgroundColor: Colors.white, selectedIndex: 0, onDestinationSelected: (i) { if (i == 1) context.push('/seller-orders'); if (i == 2) context.push('/messages?role=seller'); if (i == 3) context.push('/settings?role=seller'); }, destinations: const [NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'), NavigationDestination(icon: Icon(Icons.receipt_long_outlined), label: 'Orders'), NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: 'Messages'), NavigationDestination(icon: Icon(Icons.more_horiz), label: 'More')]),
     );
   }
 
