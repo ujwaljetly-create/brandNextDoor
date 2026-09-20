@@ -104,6 +104,7 @@ Create a complete, premium local brand identity.
         targetAudience: generated.targetAudience,
         brandScore: generated.brandScore,
         city: city,
+        category: businessType,
       );
 
       if (!mounted) return;
@@ -200,6 +201,7 @@ Create a complete, premium local brand identity.
                           ),
                           TextButton(
                             onPressed: _chooseLogo,
+                            style: TextButton.styleFrom(foregroundColor: _gold),
                             child: const Text('Change logo option'),
                           ),
                         ],
@@ -418,6 +420,7 @@ Create a complete, premium local brand identity.
     final choice = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
+      backgroundColor: _cream,
       builder: (context) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
@@ -430,7 +433,7 @@ Create a complete, premium local brand identity.
               ),
               const SizedBox(height: 16),
               ListTile(
-                leading: const Icon(Icons.auto_awesome),
+                leading: const Icon(Icons.auto_awesome, color: _gold),
                 title: const Text('Let AI generate it'),
                 subtitle: const Text(
                   'Generate a logo after your brand identity is ready.',
@@ -438,7 +441,7 @@ Create a complete, premium local brand identity.
                 onTap: () => Navigator.pop(context, 'ai'),
               ),
               ListTile(
-                leading: const Icon(Icons.upload_file_outlined),
+                leading: const Icon(Icons.upload_file_outlined, color: _gold),
                 title: const Text('Upload it myself'),
                 subtitle: const Text('Choose an existing logo from your device.'),
                 onTap: () => Navigator.pop(context, 'upload'),
