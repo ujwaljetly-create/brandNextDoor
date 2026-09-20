@@ -12,7 +12,7 @@ class BrandService {
   final BrandStorageService storageService = BrandStorageService();
   final BrandRepository repository = BrandRepository();
 
-  Future<void> saveBrandLogo({
+  Future<String> saveBrandLogo({
     required String brandId,
     required Uint8List bytes,
   }) async {
@@ -20,34 +20,29 @@ class BrandService {
       brandId: brandId,
       bytes: bytes,
     );
-    await repository.updateLogo(
-      brandId: brandId,
-      logoUrl: logoUrl,
-    );
+    await repository.updateLogo(brandId: brandId, logoUrl: logoUrl);
+    return logoUrl;
   }
 
-  Future<Map<String, dynamic>?> getBrand(String brandId) async {
-    return repository.getBrandById(brandId);
-  }
+  Future<Map<String, dynamic>?> getBrand(String brandId) =>
+      repository.getBrandById(brandId);
 
   Future<void> createBrand(BrandModel brand) async {
-    await repository.saveBrand(
-      brandData: {
-        'brandId': brand.brandId,
-        'sellerId': brand.sellerId,
-        'brandName': brand.brandName,
-        'description': brand.description,
-        'logoUrl': brand.logoUrl,
-        'bannerUrl': brand.bannerUrl,
-        'city': brand.city,
-        'deliveryAvailable': brand.deliveryAvailable,
-        'rating': brand.rating,
-        'totalReviews': brand.totalReviews,
-        'aiGenerated': false,
-        'createdAt': DateTime.now().toIso8601String(),
-        'updatedAt': DateTime.now().toIso8601String(),
-      },
-    );
+    await repository.saveBrand(brandData: {
+      'brandId': brand.brandId,
+      'sellerId': brand.sellerId,
+      'brandName': brand.brandName,
+      'description': brand.description,
+      'logoUrl': brand.logoUrl,
+      'bannerUrl': brand.bannerUrl,
+      'city': brand.city,
+      'deliveryAvailable': brand.deliveryAvailable,
+      'rating': brand.rating,
+      'totalReviews': brand.totalReviews,
+      'aiGenerated': false,
+      'createdAt': DateTime.now().toIso8601String(),
+      'updatedAt': DateTime.now().toIso8601String(),
+    });
   }
 
   Future<void> updateBrand({
@@ -64,11 +59,7 @@ class BrandService {
       'updatedAt': DateTime.now().toIso8601String(),
     };
     if (city != null) data['city'] = city.trim();
-
-    await repository.updateBrand(
-      brandId: brandId,
-      data: data,
-    );
+    await repository.updateBrand(brandId: brandId, data: data);
   }
 
   Future<Map<String, dynamic>?> getSellerBrand() async {
@@ -81,28 +72,30 @@ class BrandService {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) throw Exception('User not logged in');
 
-    final brandId = const Uuid().v4();
-    await repository.saveBrand(
-      brandData: {
-        'brandId': brandId,
-        'sellerId': user.uid,
-        'brandName': brand.brandName,
-        'tagline': brand.tagline,
-        'description': brand.description,
-        'colors': brand.colors,
-        'personalityTraits': brand.personalityTraits,
-        'targetAudience': brand.targetAudience,
-        'brandScore': brand.brandScore,
-        'city': brand.city,
-        'logoUrl': '',
-        'bannerUrl': '',
-        'rating': 0,
-        'totalReviews': 0,
-        'aiGenerated': true,
-        'createdAt': DateTime.now().toIso8601String(),
-        'updatedAt': DateTime.now().toIso8601String(),
-      },
-    );
+    final brandId = brand.brandId?.isNotEmpty == true
+        ? brand.brandId!
+        : const Uuid().v4();
+
+    await repository.saveBrand(brandData: {
+      'brandId': brandId,
+      'sellerId': user.uid,
+      'brandName': brand.brandName,
+      'tagline': brand.tagline,
+      'description': brand.description,
+      'colors': brand.colors,
+      'personalityTraits': brand.personalityTraits,
+      'targetAudience': brand.targetAudience,
+      'brandScore': brand.brandScore,
+      'city': brand.city,
+      'category': brand.category,
+      'logoUrl': '',
+      'bannerUrl': '',
+      'rating': 0,
+      'totalReviews': 0,
+      'aiGenerated': true,
+      'createdAt': DateTime.now().toIso8601String(),
+      'updatedAt': DateTime.now().toIso8601String(),
+    });
     return brandId;
   }
 }
