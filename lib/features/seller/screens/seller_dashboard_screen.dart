@@ -51,8 +51,28 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
             GestureDetector(onTap: () => context.push('/settings?role=seller'), child: CircleAvatar(radius: 20, backgroundColor: const Color(0xFFEAD8BA), backgroundImage: logoUrl.isNotEmpty ? NetworkImage(logoUrl) : null, child: logoUrl.isEmpty ? const Icon(Icons.person_outline, color: _navy) : null)),
           ]),
           const SizedBox(height: 20),
-          Text('Good morning,\n$sellerName 👋', style: const TextStyle(color: Colors.white, fontFamily: 'serif', fontSize: 27, height: 1.05, fontWeight: FontWeight.w600)),
-          if (tagline.isNotEmpty) ...[const SizedBox(height: 8), Text(tagline, style: const TextStyle(color: Color(0xFFD7DFE2), fontSize: 13))],
+          Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+            Container(
+              width: 64,
+              height: 64,
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+              child: logoUrl.isNotEmpty
+                  ? Image.network(logoUrl, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.storefront, color: _navy))
+                  : const Icon(Icons.storefront, color: _navy, size: 34),
+            ),
+            const SizedBox(width: 14),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(greeting, style: const TextStyle(color: Color(0xFFD7DFE2), fontSize: 13, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 3),
+              Text(brandName.isNotEmpty ? brandName : sellerName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontFamily: 'serif', fontSize: 25, fontWeight: FontWeight.w700)),
+              if (brandName.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(sellerName, style: const TextStyle(color: Color(0xFFD7DFE2), fontSize: 12)),
+              ],
+            ])),
+          ]),
+          if (tagline.isNotEmpty) ...[const SizedBox(height: 10), Text(tagline, style: const TextStyle(color: Color(0xFFD7DFE2), fontSize: 13))],
         ])),
         Padding(padding: const EdgeInsets.fromLTRB(18, 18, 18, 100), child: user == null ? const Text('Sign in to see seller activity.') : StreamBuilder<List<OrderModel>>(
           stream: OrderService().getSellerOrders(user.uid), builder: (context, orderSnap) {
