@@ -36,7 +36,9 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
   Widget build(BuildContext context) {
     if (isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     final user = FirebaseAuth.instance.currentUser;
-    final sellerName = user?.displayName?.trim().isNotEmpty == true ? user!.displayName!.trim() : (brandName.isNotEmpty ? brandName : 'Seller');
+    final sellerName = user?.displayName?.trim().isNotEmpty == true ? user!.displayName!.trim() : 'Seller';
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
     return Scaffold(
       backgroundColor: _cream,
       body: SafeArea(child: RefreshIndicator(onRefresh: loadBrand, child: ListView(physics: const AlwaysScrollableScrollPhysics(), children: [
