@@ -174,15 +174,7 @@ class _SellerBrandScreenState extends State<SellerBrandScreen> {
 
   Color _parseColor(String value) {
     final hex = value.replaceAll('#', '').trim();
-    if (RegExp(r'^[0-9A-Fa-f]{6} Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE6DED2))),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: _navy, fontSize: 17, fontWeight: FontWeight.w800)), const SizedBox(height: 10), child]),
-      );
-}
-).hasMatch(hex)) {
+    if (RegExp(r'^[0-9A-Fa-f]{6}$').hasMatch(hex)) {
       return Color(int.parse('FF$hex', radix: 16));
     }
     return _navy;
@@ -190,15 +182,7 @@ class _SellerBrandScreenState extends State<SellerBrandScreen> {
 
   String _colorName(String value) {
     final hex = value.replaceAll('#', '').trim();
-    if (!RegExp(r'^[0-9A-Fa-f]{6} Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE6DED2))),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: _navy, fontSize: 17, fontWeight: FontWeight.w800)), const SizedBox(height: 10), child]),
-      );
-}
-).hasMatch(hex)) return value;
+    if (!RegExp(r'^[0-9A-Fa-f]{6}$').hasMatch(hex)) return value;
     final color = Color(int.parse('FF$hex', radix: 16));
     final r = color.red, g = color.green, b = color.blue;
     final maxV = [r, g, b].reduce((a, b) => a > b ? a : b);
@@ -224,7 +208,18 @@ class _SellerBrandScreenState extends State<SellerBrandScreen> {
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE6DED2))),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: _navy, fontSize: 17, fontWeight: FontWeight.w800)), const SizedBox(height: 10), child]),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE6DED2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(color: _navy, fontSize: 17, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 10),
+            child,
+          ],
+        ),
       );
 }
