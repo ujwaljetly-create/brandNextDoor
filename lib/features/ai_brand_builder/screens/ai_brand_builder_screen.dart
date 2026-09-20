@@ -29,6 +29,13 @@ class _AIBrandBuilderScreenState extends State<AIBrandBuilderScreen> {
   bool isLoading = false;
   String logoChoice = 'ai';
   File? selectedLogo;
+  final List<String> selectedColors = ['#0C2430', '#C99245'];
+
+  static const brandPalette = <String, String>{
+    'Navy': '#0C2430', 'Gold': '#C99245', 'Ivory': '#F8F3EA',
+    'Forest Green': '#355E4A', 'Terracotta': '#B9674D',
+    'Dusty Rose': '#C98C8C', 'Slate Blue': '#5C6F91', 'Charcoal': '#3B4145',
+  };
 
   final businessTypes = const [
     'Fashion & Accessories',
@@ -89,6 +96,7 @@ Business name: ${businessNameController.text.trim()}
 Business type: $businessType
 Description: ${descriptionController.text.trim()}
 Location: $city
+Preferred brand colors: ${selectedColors.join(', ')}
 Logo preference: ${logoChoice == 'ai' ? 'AI generated logo' : 'Seller provided logo'}
 Create a complete, premium local brand identity.
 ''';
@@ -99,7 +107,7 @@ Create a complete, premium local brand identity.
         brandName: generated.brandName,
         tagline: generated.tagline,
         description: generated.description,
-        colors: generated.colors,
+        colors: selectedColors.isNotEmpty ? List<String>.from(selectedColors) : generated.colors,
         personalityTraits: generated.personalityTraits,
         targetAudience: generated.targetAudience,
         brandScore: generated.brandScore,
@@ -255,6 +263,34 @@ Create a complete, premium local brand identity.
                         ),
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 18),
+                  const Text('Brand Colors', style: TextStyle(color: _navy, fontFamily: 'serif', fontSize: 20, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  const Text('Choose up to three colors. AI will use them when shaping your brand identity and logo.', style: TextStyle(color: Color(0xFF66727A), fontSize: 13, height: 1.35)),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: brandPalette.entries.map((entry) {
+                      final selected = selectedColors.contains(entry.value);
+                      return FilterChip(
+                        selected: selected,
+                        selectedColor: const Color(0xFFEAD8BA),
+                        checkmarkColor: _navy,
+                        avatar: CircleAvatar(backgroundColor: _hex(entry.value)),
+                        label: Text(entry.key, style: const TextStyle(color: _navy)),
+                        onSelected: (value) {
+                          setState(() {
+                            if (value) {
+                              if (selectedColors.length < 3) selectedColors.add(entry.value);
+                            } else {
+                              selectedColors.remove(entry.value);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
                   ),
                   const SizedBox(height: 18),
                   Container(
@@ -468,6 +504,8 @@ Create a complete, premium local brand identity.
       selectedLogo = File(picked.path);
     });
   }
+  Color _hex(String value) => Color(int.parse('FF${value.replaceAll('#', '')}', radix: 16));
+
 }
 
 class _ProgressLine extends StatelessWidget {
