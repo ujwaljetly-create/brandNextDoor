@@ -31,8 +31,8 @@ class BuyerOrdersScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
             style: TextButton.styleFrom(foregroundColor: _navy),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Keep Order'),
           ),
           FilledButton(
