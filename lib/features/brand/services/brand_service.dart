@@ -52,6 +52,7 @@ class BrandService {
     required String description,
     String? city,
     List<String>? colors,
+    Map<String, String>? colorNames,
   }) async {
     final data = <String, dynamic>{
       'brandName': brandName,
@@ -61,6 +62,7 @@ class BrandService {
     };
     if (city != null) data['city'] = city.trim();
     if (colors != null) data['colors'] = colors;
+    if (colorNames != null) data['colorNames'] = colorNames;
     await repository.updateBrand(brandId: brandId, data: data);
   }
 
