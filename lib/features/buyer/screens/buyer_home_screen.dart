@@ -75,7 +75,7 @@ class _BuyerHomeScreenState extends ConsumerState<BuyerHomeScreen> {
         backgroundColor: Colors.white,
         selectedIndex: 0,
         onDestinationSelected: (i) { if (i == 1) context.push('/marketplace'); if (i == 2) context.push('/messages?role=buyer'); if (i == 3) context.push('/settings?role=buyer'); },
-        destinations: const [NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'), NavigationDestination(icon: Icon(Icons.search), label: 'Explore'), NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: 'Chats'), NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile')],
+        destinations: const [NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'), NavigationDestination(icon: Icon(Icons.search), label: 'Explore'), NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: 'Messages'), NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile')],
       ),
     );
   }
