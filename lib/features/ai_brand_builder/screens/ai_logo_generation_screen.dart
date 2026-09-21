@@ -8,343 +8,214 @@ import '../../ai_logo/services/ai_logo_service.dart';
 import '../../brand/services/brand_service.dart';
 import '../models/generated_brand_model.dart';
 
-class AILogoGenerationScreen
-    extends StatefulWidget {
+class AILogoGenerationScreen extends StatefulWidget {
   final GeneratedBrandModel brand;
-
-  const AILogoGenerationScreen({
-    super.key,
-    required this.brand,
-  });
+  const AILogoGenerationScreen({super.key, required this.brand});
 
   @override
-  State<AILogoGenerationScreen>
-      createState() =>
-          _AILogoGenerationScreenState();
+  State<AILogoGenerationScreen> createState() => _AILogoGenerationScreenState();
 }
 
-class _AILogoGenerationScreenState
-    extends State<AILogoGenerationScreen> {
+class _AILogoGenerationScreenState extends State<AILogoGenerationScreen> {
+  static const _navy = Color(0xFF0C2430);
+  static const _gold = Color(0xFFC99245);
+  static const _cream = Color(0xFFF8F3EA);
+
   bool isGenerating = false;
-
   bool isSaving = false;
-
   String? generatedLogo;
+  String? error;
 
   @override
   void initState() {
     super.initState();
-
     generateLogo();
   }
 
   Future<void> generateLogo() async {
+    if (isGenerating) return;
+    setState(() {
+      isGenerating = true;
+      error = null;
+      generatedLogo = null;
+    });
     try {
-      setState(() {
-        isGenerating = true;
-      });
-
-      final result =
-          await AILogoService()
-              .generateLogo(
-        brandName:
-            widget.brand.brandName,
-        tagline:
-            widget.brand.tagline,
-        description:
-            widget.brand.description,
-        colors:
-            widget.brand.colors,
+      final result = await AILogoService().generateLogo(
+        brandName: widget.brand.brandName,
+        tagline: widget.brand.tagline,
+        description: widget.brand.description,
+        colors: widget.brand.colors,
       );
-
       if (!mounted) return;
-
-      setState(() {
-        generatedLogo = result;
-      });
+      setState(() => generatedLogo = result);
     } catch (e) {
       if (!mounted) return;
-
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
-        SnackBar(
-          content:
-              Text(e.toString()),
-        ),
+      setState(() => error = 'We could not generate a logo. Please try again.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('AI logo generation failed: $e')),
       );
     } finally {
-      if (mounted) {
-        setState(() {
-          isGenerating = false;
-        });
-      }
+      if (mounted) setState(() => isGenerating = false);
     }
   }
 
   Future<void> saveLogo() async {
-  try {
-    if (generatedLogo == null) {
+    if (generatedLogo == null || isSaving) return;
+    final id = widget.brand.brandId;
+    if (id == null || id.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Save the brand before choosing a logo.')),
+      );
       return;
     }
 
-    debugPrint(
-      'BrandId = ${widget.brand.brandId}',
-    );
-
-    if (widget.brand.brandId == null ||
-        widget.brand.brandId!.isEmpty) {
-      throw Exception(
-        'Brand must be saved before a logo can be attached.',
+    setState(() => isSaving = true);
+    try {
+      final Uint8List bytes = base64Decode(generatedLogo!);
+      await BrandService().saveBrandLogo(brandId: id, bytes: bytes);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('New logo saved to your brand.')),
       );
-    }
-
-    setState(() {
-      isSaving = true;
-    });
-
-    final Uint8List bytes =
-        base64Decode(
-      generatedLogo!,
-    );
-
-    await BrandService()
-        .saveBrandLogo(
-      brandId:
-          widget.brand.brandId!,
-      bytes: bytes,
-    );
-
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Logo Saved Successfully',
-        ),
-      ),
-    );
-
-    context.pop(true);
-
-  } catch (e) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      SnackBar(
-        content:
-            Text(e.toString()),
-      ),
-    );
-  } finally {
-    if (mounted) {
-      setState(() {
-        isSaving = false;
-      });
+      context.pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not save logo: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => isSaving = false);
     }
   }
-}
 
+  void keepCurrentLogo() {
+    if (context.canPop()) {
+      context.pop(false);
+    } else {
+      context.go('/seller-brand');
+    }
+  }
 
   @override
-  Widget build(
-      BuildContext context) {
+  Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _cream,
       appBar: AppBar(
+        backgroundColor: _cream,
+        surfaceTintColor: _cream,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios,
-          ),
-          onPressed: () {
-            context.pop();
-          },
+          icon: const Icon(Icons.arrow_back, color: _navy),
+          onPressed: keepCurrentLogo,
         ),
         title: const Text(
           'AI Logo Generator',
+          style: TextStyle(color: _navy, fontFamily: 'serif', fontWeight: FontWeight.w700),
         ),
       ),
-      body: Padding(
-        padding:
-            const EdgeInsets.all(
-          24,
-        ),
-        child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(22, 12, 22, 28),
           children: [
             Text(
               widget.brand.brandName,
-              style:
-                  const TextStyle(
+              style: const TextStyle(
+                color: _navy,
+                fontFamily: 'serif',
                 fontSize: 30,
-                fontWeight:
-                    FontWeight.bold,
-                color:
-                    Colors.white,
+                fontWeight: FontWeight.w700,
               ),
             ),
-
-            const SizedBox(
-              height: 8,
-            ),
-
-            Text(
-              widget.brand.tagline,
-              style:
-                  const TextStyle(
-                color:
-                    Colors.white70,
-                fontSize: 16,
-              ),
-            ),
-
-            const SizedBox(
-              height: 24,
-            ),
-
+            if (widget.brand.tagline.isNotEmpty) ...[
+              const SizedBox(height: 5),
+              Text(widget.brand.tagline, style: const TextStyle(color: Color(0xFF65727A))),
+            ],
+            const SizedBox(height: 20),
             Container(
-              padding:
-                  const EdgeInsets.all(
-                16,
+              height: 330,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: const Color(0xFFE5D9C8)),
               ),
-              decoration:
-                  BoxDecoration(
-                borderRadius:
-                    BorderRadius
-                        .circular(
-                  24,
-                ),
-                color:
-                    Colors.white10,
-              ),
-              child: Text(
-                widget.brand
-                    .description,
-                style:
-                    const TextStyle(
-                  color:
-                      Colors.white70,
-                ),
-              ),
-            ),
-
-            const SizedBox(
-              height: 30,
-            ),
-
-            Expanded(
               child: Center(
-                child:
-                    isGenerating
-                        ? Column(
-                            mainAxisAlignment:
-                                MainAxisAlignment
-                                    .center,
-                            children: const [
-                              CircularProgressIndicator(),
-                              SizedBox(
-                                height:
-                                    20,
-                              ),
-                              Text(
-                                'Generating logo...',
-                                style:
-                                    TextStyle(
-                                  color:
-                                      Colors.white,
-                                ),
-                              ),
-                            ],
-                          )
-                        : generatedLogo ==
-                                null
-                            ? const Text(
-                                'Failed to generate logo',
-                                style:
-                                    TextStyle(
-                                  color:
-                                      Colors.white,
-                                ),
-                              )
-                            : ClipRRect(
-                                borderRadius:
-                                    BorderRadius.circular(
-                                  24,
-                                ),
-                                child:
-                                    Image.memory(
-                                  base64Decode(
-                                    generatedLogo!,
-                                  ),
-                                  fit: BoxFit
-                                      .contain,
-                                ),
-                              ),
-              ),
-            ),
-
-            const SizedBox(
-              height: 20,
-            ),
-
-            SizedBox(
-              width:
-                  double.infinity,
-              child:
-                  OutlinedButton.icon(
-                onPressed:
-                    isGenerating ||
-                            isSaving
-                        ? null
-                        : generateLogo,
-                icon: const Icon(
-                  Icons.refresh,
-                ),
-                label: const Text(
-                  'Generate Another',
-                ),
-              ),
-            ),
-
-            const SizedBox(
-              height: 12,
-            ),
-
-            SizedBox(
-              width:
-                  double.infinity,
-              height: 55,
-              child:
-                  ElevatedButton.icon(
-                onPressed:
-                    generatedLogo ==
-                                null ||
-                            isSaving
-                        ? null
-                        : saveLogo,
-                icon:
-                    isSaving
-                        ? const SizedBox(
-                            height:
-                                18,
-                            width:
-                                18,
-                            child:
-                                CircularProgressIndicator(
-                              strokeWidth:
-                                  2,
+                child: isGenerating
+                    ? const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(color: _gold),
+                          SizedBox(height: 18),
+                          Text(
+                            'Creating a logo for your brand...',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: _navy, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      )
+                    : generatedLogo != null
+                        ? Image.memory(
+                            base64Decode(generatedLogo!),
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.broken_image_outlined,
+                              color: _navy,
+                              size: 60,
                             ),
                           )
-                        : const Icon(
-                            Icons.check,
+                        : Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.auto_awesome, color: _gold, size: 48),
+                              const SizedBox(height: 14),
+                              Text(
+                                error ?? 'No logo generated yet.',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: _navy),
+                              ),
+                            ],
                           ),
-                label: Text(
-                  isSaving
-                      ? 'Saving Logo...'
-                      : 'Use This Logo',
-                ),
               ),
+            ),
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: _gold,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(54),
+              ),
+              onPressed: isGenerating || isSaving ? null : generateLogo,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Generate Another'),
+            ),
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: _gold,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(54),
+              ),
+              onPressed: isSaving ? null : keepCurrentLogo,
+              icon: const Icon(Icons.undo),
+              label: const Text('Keep Using Current Logo'),
+            ),
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: _gold,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(54),
+              ),
+              onPressed: generatedLogo == null || isSaving ? null : saveLogo,
+              icon: isSaving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.check),
+              label: Text(isSaving ? 'Saving Logo...' : 'Use This Logo'),
             ),
           ],
         ),

@@ -8,57 +8,60 @@ class AccountTypeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Choose Account Type',
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/welcome');
+            }
+          },
         ),
+        title: const Text('Choose Account Type'),
       ),
-      body: Padding(
+      body: ListView(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const SizedBox(height: 40),
-
-            Card(
-              child: ListTile(
-                leading: const Icon(
-                  Icons.shopping_bag,
+        children: [
+          const SizedBox(height: 24),
+          Card(
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(18),
+              leading: const Icon(Icons.shopping_bag, size: 34),
+              title: const Text(
+                'Buyer',
+                style: TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w600,
                 ),
-                title: const Text(
-                  'Buyer',
-                ),
-                subtitle: const Text(
-                  'Shop local brands',
-                ),
-                onTap: () {
-                  context.go(
-                    '/register?role=buyer',
-                  );
-                },
               ),
+              subtitle: const Text('Discover and shop local brands'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                context.push('/register?role=buyer');
+              },
             ),
-
-            const SizedBox(height: 20),
-
-            Card(
-              child: ListTile(
-                leading: const Icon(
-                  Icons.store,
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(18),
+              leading: const Icon(Icons.store, size: 34),
+              title: const Text(
+                'Seller',
+                style: TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w600,
                 ),
-                title: const Text(
-                  'Seller',
-                ),
-                subtitle: const Text(
-                  'Create your brand',
-                ),
-                onTap: () {
-                  context.go(
-                    '/register?role=seller',
-                  );
-                },
               ),
+              subtitle: const Text('Create a brand and sell locally'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                context.push('/register?role=seller');
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

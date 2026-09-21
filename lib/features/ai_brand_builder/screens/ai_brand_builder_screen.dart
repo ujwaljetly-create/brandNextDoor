@@ -1,123 +1,533 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
+import '../../../widgets/city_picker_sheet.dart';
+import '../models/generated_brand_model.dart';
 import '../services/ai_brand_service.dart';
 
-class AIBrandBuilderScreen
-    extends StatefulWidget {
-  const AIBrandBuilderScreen({
-    super.key,
-  });
+class AIBrandBuilderScreen extends StatefulWidget {
+  const AIBrandBuilderScreen({super.key});
 
   @override
-  State<AIBrandBuilderScreen>
-      createState() =>
-          _AIBrandBuilderScreenState();
+  State<AIBrandBuilderScreen> createState() => _AIBrandBuilderScreenState();
 }
 
-class _AIBrandBuilderScreenState
-    extends State<AIBrandBuilderScreen> {
-  final businessController =
-      TextEditingController();
+class _AIBrandBuilderScreenState extends State<AIBrandBuilderScreen> {
+  static const _navy = Color(0xFF0C2430);
+  static const _gold = Color(0xFFC99245);
+  static const _cream = Color(0xFFF8F3EA);
 
+  final businessNameController = TextEditingController();
+  final descriptionController = TextEditingController();
+  final locationController = TextEditingController();
+
+  String businessType = 'Fashion & Accessories';
+  bool useAi = true;
   bool isLoading = false;
+  String logoChoice = 'ai';
+  File? selectedLogo;
+  final List<String> selectedColors = ['#0C2430', '#C99245'];
+
+  static const brandPalette = <String, String>{
+    'Navy': '#0C2430', 'Gold': '#C99245', 'Ivory': '#F8F3EA',
+    'Forest Green': '#355E4A', 'Terracotta': '#B9674D',
+    'Dusty Rose': '#C98C8C', 'Slate Blue': '#5C6F91', 'Charcoal': '#3B4145',
+  };
+
+  final businessTypes = const [
+    'Fashion & Accessories',
+    'Food & Beverage',
+    'Beauty & Wellness',
+    'Home & Decor',
+    'Services',
+    'Art & Handmade',
+    'Other',
+  ];
+
+  @override
+  void dispose() {
+    businessNameController.dispose();
+    descriptionController.dispose();
+    locationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _chooseCity() async {
+    final result = await CityPickerSheet.show(
+      context,
+      initialCity: locationController.text.trim(),
+    );
+    if (result != null) {
+      locationController.text = result.city;
+      if (mounted) setState(() {});
+    }
+  }
 
   Future<void> generateBrand() async {
-    try {
-      setState(() {
-        isLoading = true;
-      });
+    if (businessNameController.text.trim().isEmpty ||
+        descriptionController.text.trim().isEmpty ||
+        locationController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please add your business name, description, and city.'),
+        ),
+      );
+      return;
+    }
 
-      final result =
-          await AIBrandService()
-              .generateBrand(
-        businessInfo:
-            businessController.text,
+    if (logoChoice == 'upload' && selectedLogo == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Choose a logo image or switch to AI generated logo.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      final city = locationController.text.trim();
+      final info = '''
+Business name: ${businessNameController.text.trim()}
+Business type: $businessType
+Description: ${descriptionController.text.trim()}
+Location: $city
+Preferred brand colors: ${selectedColors.join(', ')}
+Logo preference: ${logoChoice == 'ai' ? 'AI generated logo' : 'Seller provided logo'}
+Create a complete, premium local brand identity.
+''';
+
+      final generated = await AIBrandService().generateBrand(businessInfo: info);
+      final result = GeneratedBrandModel(
+        brandId: generated.brandId,
+        brandName: generated.brandName,
+        tagline: generated.tagline,
+        description: generated.description,
+        colors: selectedColors.isNotEmpty ? List<String>.from(selectedColors) : generated.colors,
+        personalityTraits: generated.personalityTraits,
+        targetAudience: generated.targetAudience,
+        brandScore: generated.brandScore,
+        city: city,
+        category: businessType,
       );
 
       if (!mounted) return;
-
       context.push(
-  '/ai-brand-studio',
-  extra: result,
-);
+        '/ai-brand-studio',
+        extra: {
+          'brand': result,
+          'logoPreference': logoChoice,
+          'logoPath': selectedLogo?.path,
+        },
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not build your brand: $e')),
+      );
     } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
   @override
-  Widget build(
-      BuildContext context) {
+  Widget build(BuildContext context) {
+    if (isLoading) return _buildProgress();
+
     return Scaffold(
+      backgroundColor: _cream,
       appBar: AppBar(
-        title: const Text(
-          'AI Brand Builder',
+        backgroundColor: _cream,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: _navy),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/seller-onboarding'),
         ),
       ),
-      body: Padding(
-        padding:
-            const EdgeInsets.all(24),
+      body: SafeArea(
+        top: false,
         child: Column(
           children: [
-            Text(
-              
-              'Tell us about your business',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontSize: 24,
-                fontWeight:
-                    FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(
-              height: 20,
-            ),
-
-            TextField(
-              controller:
-                  businessController,
-              maxLines: 8,
-              decoration:
-                  const InputDecoration(
-                hintText:
-                    'Example:\n\nI make handmade soy candles.\nMy customers are homeowners.\nMy products are eco-friendly.',
-                border:
-                    OutlineInputBorder(),
-              ),
-              style: TextStyle(
-  color: Colors.white.withOpacity(0.9),
-)
-            ),
-
-            const SizedBox(
-              height: 30,
-            ),
-
-            SizedBox(
-              width:
-                  double.infinity,
-              child:
-                  ElevatedButton(
-                onPressed:
-                    isLoading
-                        ? null
-                        : generateBrand,
-                child:
-                    isLoading
-                        ? const CircularProgressIndicator()
-                        : const Text(
-                            'Generate Brand',
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+                children: [
+                  const Text(
+                    'Tell us about\nyour business',
+                    style: TextStyle(
+                      color: _navy,
+                      fontFamily: 'serif',
+                      fontSize: 34,
+                      height: 1.05,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Center(
+                    child: GestureDetector(
+                      onTap: _chooseLogo,
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE9DDCB),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: const Color(0xFFD6C4A9)),
+                              image: selectedLogo != null
+                                  ? DecorationImage(
+                                      image: FileImage(selectedLogo!),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
+                            child: selectedLogo == null
+                                ? const Icon(
+                                    Icons.add_a_photo_outlined,
+                                    color: _navy,
+                                    size: 34,
+                                  )
+                                : null,
                           ),
+                          const SizedBox(height: 8),
+                          Text(
+                            logoChoice == 'ai'
+                                ? 'AI will create your logo'
+                                : selectedLogo == null
+                                    ? 'Upload your logo'
+                                    : 'Logo selected',
+                            style: const TextStyle(
+                              color: _navy,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _chooseLogo,
+                            style: TextButton.styleFrom(foregroundColor: _gold),
+                            child: const Text('Change logo option'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _field(
+                    controller: businessNameController,
+                    label: 'Business Name',
+                    icon: Icons.business_center_outlined,
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: businessType,
+                    decoration: _decoration(
+                      'Business Type',
+                      Icons.category_outlined,
+                    ),
+                    items: businessTypes
+                        .map(
+                          (type) => DropdownMenuItem(
+                            value: type,
+                            child: Text(type),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) =>
+                        setState(() => businessType = value ?? businessType),
+                  ),
+                  const SizedBox(height: 12),
+                  _field(
+                    controller: descriptionController,
+                    label: 'Short Description',
+                    icon: Icons.edit_note_outlined,
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: _chooseCity,
+                    borderRadius: BorderRadius.circular(14),
+                    child: IgnorePointer(
+                      child: TextFormField(
+                        controller: locationController,
+                        decoration: _decoration(
+                          'City',
+                          Icons.location_on_outlined,
+                        ).copyWith(
+                          hintText: 'Use GPS or search for a city',
+                          suffixIcon: const Icon(Icons.map_outlined),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  const Text('Brand Colors', style: TextStyle(color: _navy, fontFamily: 'serif', fontSize: 20, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  const Text('Choose up to three colors. AI will use them when shaping your brand identity and logo.', style: TextStyle(color: Color(0xFF66727A), fontSize: 13, height: 1.35)),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: brandPalette.entries.map((entry) {
+                      final selected = selectedColors.contains(entry.value);
+                      return FilterChip(
+                        selected: selected,
+                        selectedColor: const Color(0xFFEAD8BA),
+                        checkmarkColor: _navy,
+                        avatar: CircleAvatar(backgroundColor: _hex(entry.value)),
+                        label: Text(entry.key, style: const TextStyle(color: _navy)),
+                        onSelected: (value) {
+                          setState(() {
+                            if (value) {
+                              if (selectedColors.length < 3) selectedColors.add(entry.value);
+                            } else {
+                              selectedColors.remove(entry.value);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 18),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE4DDD2)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Use AI to build my brand',
+                                style: TextStyle(
+                                  color: _navy,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Let our AI create a complete identity based on your details.',
+                                style: TextStyle(
+                                  color: Color(0xFF66727A),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: useAi,
+                          activeThumbColor: _gold,
+                          onChanged: (value) => setState(() => useAi = value),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 10, 24, 22),
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _gold,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: useAi
+                      ? generateBrand
+                      : () => context.push('/brand-profile'),
+                  child: Text(
+                    useAi ? 'Build My Brand' : 'Continue Manually',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildProgress() {
+    return Scaffold(
+      backgroundColor: _cream,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 170,
+                height: 170,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _gold, width: 5),
+                  gradient: const RadialGradient(
+                    colors: [Colors.white, Color(0xFFF4E9DB)],
+                  ),
+                ),
+                child: const Center(
+                  child: Text(
+                    'Let AI\ndo the rest',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: _navy,
+                      fontFamily: 'serif',
+                      fontSize: 29,
+                      height: 1.05,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 34),
+              const Text(
+                'Creating your brand identity,\nlogo, colors, and more...',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: _navy, fontSize: 17, height: 1.45),
+              ),
+              const SizedBox(height: 30),
+              const LinearProgressIndicator(
+                color: _gold,
+                backgroundColor: Color(0xFFE9DED0),
+              ),
+              const SizedBox(height: 28),
+              const _ProgressLine('Analyzing your business details'),
+              const _ProgressLine('Generating brand identity'),
+              const _ProgressLine('Creating logo options'),
+              const _ProgressLine('Crafting your brand story'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _field({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    int maxLines = 1,
+  }) {
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      style: const TextStyle(color: _navy),
+      decoration: _decoration(label, icon),
+    );
+  }
+
+  InputDecoration _decoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Color(0xFF5F676D)),
+      prefixIcon: Icon(icon, color: _navy),
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFE4DDD2)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFE4DDD2)),
+      ),
+    );
+  }
+
+  Future<void> _chooseLogo() async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: _cream,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'How would you like to create your logo?',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.auto_awesome, color: _gold),
+                title: const Text('Let AI generate it'),
+                subtitle: const Text(
+                  'Generate a logo after your brand identity is ready.',
+                ),
+                onTap: () => Navigator.pop(context, 'ai'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.upload_file_outlined, color: _gold),
+                title: const Text('Upload it myself'),
+                subtitle: const Text('Choose an existing logo from your device.'),
+                onTap: () => Navigator.pop(context, 'upload'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (choice == null) return;
+    if (choice == 'ai') {
+      setState(() {
+        logoChoice = 'ai';
+        selectedLogo = null;
+      });
+      return;
+    }
+
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+    setState(() {
+      logoChoice = 'upload';
+      selectedLogo = File(picked.path);
+    });
+  }
+  Color _hex(String value) => Color(int.parse('FF${value.replaceAll('#', '')}', radix: 16));
+
+}
+
+class _ProgressLine extends StatelessWidget {
+  final String text;
+  const _ProgressLine(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle, color: Color(0xFFC99245), size: 20),
+          const SizedBox(width: 10),
+          Text(
+            text,
+            style: const TextStyle(
+              color: Color(0xFF0C2430),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
