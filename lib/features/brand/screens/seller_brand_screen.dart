@@ -57,7 +57,11 @@ class _SellerBrandScreenState extends State<SellerBrandScreen> {
     final logoUrl = (brand!['logoUrl'] ?? '').toString();
     final colors = ((brand!['colors'] as List?) ?? []).map((e) => e.toString()).toList();
     final personality = ((brand!['personalityTraits'] as List?) ?? []).map((e) => e.toString()).toList();
-    final colorNames = colors.map(_colorName).toList();
+    final storedColorNames = brand!['colorNames'];
+    final namedColors = storedColorNames is Map
+        ? storedColorNames.map((key, value) => MapEntry(key.toString(), value.toString()))
+        : <String, String>{};
+    final colorNames = colors.map((hex) => namedColors[hex] ?? _colorName(hex)).toList();
 
     return Scaffold(
       backgroundColor: _cream,
