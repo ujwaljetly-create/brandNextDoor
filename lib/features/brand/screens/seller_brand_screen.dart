@@ -61,7 +61,13 @@ class _SellerBrandScreenState extends State<SellerBrandScreen> {
     final namedColors = storedColorNames is Map
         ? storedColorNames.map((key, value) => MapEntry(key.toString(), value.toString()))
         : <String, String>{};
-    final colorNames = colors.map((hex) => namedColors[hex] ?? _colorName(hex)).toList();
+    final colorNames = colors.map((hex) {
+      final key = namedColors.keys.cast<String?>().firstWhere(
+        (key) => _normalizeHex(key ?? '') == _normalizeHex(hex),
+        orElse: () => null,
+      );
+      return key == null ? _colorName(hex) : namedColors[key]!;
+    }).toList();
 
     return Scaffold(
       backgroundColor: _cream,
@@ -174,6 +180,11 @@ class _SellerBrandScreenState extends State<SellerBrandScreen> {
     );
   }
 
+  String _normalizeHex(String value) {
+    final clean = value.replaceAll('#', '').trim().toUpperCase();
+    return clean.length == 6 ? '#$clean' : value.trim().toUpperCase();
+  }
+
   Color _parseColor(String value) {
     final hex = value.replaceAll('#', '').trim();
     if (RegExp(r'^[0-9A-Fa-f]{6}$').hasMatch(hex)) {
@@ -183,6 +194,18 @@ class _SellerBrandScreenState extends State<SellerBrandScreen> {
   }
 
   String _colorName(String value) {
+    const exactNames = <String, String>{
+      '#0C2430': 'Navy',
+      '#C99245': 'Gold',
+      '#F8F3EA': 'Ivory',
+      '#355E4A': 'Forest Green',
+      '#B9674D': 'Terracotta',
+      '#C98C8C': 'Dusty Rose',
+      '#5C6F91': 'Slate Blue',
+      '#3B4145': 'Charcoal',
+    };
+    final exact = exactNames[_normalizeHex(value)];
+    if (exact != null) return exact;
     final hex = value.replaceAll('#', '').trim();
     if (!RegExp(r'^[0-9A-Fa-f]{6}$').hasMatch(hex)) return value;
     final color = Color(int.parse('FF$hex', radix: 16));
