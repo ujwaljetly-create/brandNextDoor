@@ -81,7 +81,6 @@ class _EditBrandScreenState extends State<EditBrandScreen> {
         ],
       ),
     );
-    controller.dispose();
     if (name == null || name.trim().isEmpty) return;
 
     setState(() => isResolvingColor = true);
@@ -211,19 +210,20 @@ class _EditBrandScreenState extends State<EditBrandScreen> {
               )).toList(),
             ),
           const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _navy,
-                side: const BorderSide(color: _gold),
-                minimumSize: const Size(0, 48),
+          SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: _gold,
+                foregroundColor: Colors.white,
+                shape: const StadiumBorder(),
               ),
               onPressed: isResolvingColor ? null : _addColor,
               icon: isResolvingColor
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: _gold))
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.add),
-              label: Text(isResolvingColor ? 'Creating Color...' : 'Add More Colors'),
+              label: Text(isResolvingColor ? 'Creating Color...' : 'Add More Colors', style: const TextStyle(fontWeight: FontWeight.w700)),
             ),
           ),
           const SizedBox(height: 26),
