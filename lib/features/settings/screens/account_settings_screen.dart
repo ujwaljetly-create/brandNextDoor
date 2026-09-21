@@ -165,9 +165,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             _item(Icons.shopping_bag_outlined, 'Shop on Brand Next Door', () => context.go('/buyer-home')),
             _item(Icons.storefront_outlined, 'Business Information', () => context.push('/seller-brand')),
             _item(Icons.inventory_2_outlined, 'Manage Products', () => context.push('/my-listings')),
-            _item(Icons.receipt_long_outlined, 'Received Orders', () => context.push('/seller-orders')),
             _item(Icons.people_outline, 'Followers', () => context.push('/seller-followers')),
-            _item(Icons.chat_bubble_outline, 'Messages', () => context.push('/messages?role=${widget.role}')),
             _item(Icons.lock_reset, 'Reset Password', _sendPasswordReset),
             const SizedBox(height: 14),
             _signOutTile(),
@@ -218,12 +216,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           onDestinationSelected: (i) {
             if (i == 0) context.go('/buyer-home');
             if (i == 1) context.push('/marketplace');
-            if (i == 2) context.push('/buyer-orders');
+            if (i == 2) context.push('/messages?role=buyer');
           },
           destinations: const [
             NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
             NavigationDestination(icon: Icon(Icons.search), label: 'Explore'),
-            NavigationDestination(icon: Icon(Icons.receipt_long_outlined), label: 'Orders'),
+            NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: 'Messages'),
             NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
           ],
         ),
