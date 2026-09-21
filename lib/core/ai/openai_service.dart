@@ -221,4 +221,36 @@ Future<String> generateDescription(
       .toString()
       .trim();
 }
+  Future<String> resolveColorHex(String colorName) async {
+    final response = await http.post(
+      Uri.parse('https://api.openai.com/v1/chat/completions'),
+      headers: {
+        'Authorization': 'Bearer ${AIConfig.apiKey}',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'model': 'gpt-4o-mini',
+        'messages': [
+          {
+            'role': 'system',
+            'content': 'Convert a human color name or description into one representative RGB hex color. Return ONLY JSON like {"hex":"#AABBCC"}.'
+          },
+          {'role': 'user', 'content': colorName}
+        ],
+        'response_format': {'type': 'json_object'}
+      }),
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (data['error'] != null) {
+      throw Exception((data['error'] as Map)['message']);
+    }
+    final content = data['choices'][0]['message']['content'].toString();
+    final parsed = jsonDecode(content) as Map<String, dynamic>;
+    final hex = (parsed['hex'] ?? '').toString().trim().toUpperCase();
+    if (!RegExp(r'^#[0-9A-F]{6}$').hasMatch(hex)) {
+      throw Exception('AI returned an invalid color.');
+    }
+    return hex;
+  }
+
 }
