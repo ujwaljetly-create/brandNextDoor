@@ -48,7 +48,6 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
             Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: _gold, borderRadius: BorderRadius.circular(20)), child: const Text('Seller', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700))),
             const SizedBox(width: 4),
             NotificationBell(onPressed: () => context.push('/notifications')),
-            GestureDetector(onTap: () => context.push('/settings?role=seller'), child: CircleAvatar(radius: 20, backgroundColor: const Color(0xFFEAD8BA), backgroundImage: logoUrl.isNotEmpty ? NetworkImage(logoUrl) : null, child: logoUrl.isEmpty ? const Icon(Icons.person_outline, color: _navy) : null)),
           ]),
           const SizedBox(height: 20),
           Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
