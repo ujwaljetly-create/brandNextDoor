@@ -179,22 +179,22 @@ class _AILogoGenerationScreenState extends State<AILogoGenerationScreen> {
               ),
             ),
             const SizedBox(height: 18),
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _navy,
-                side: const BorderSide(color: _gold),
-                minimumSize: const Size.fromHeight(52),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: _gold,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(54),
               ),
               onPressed: isGenerating || isSaving ? null : generateLogo,
               icon: const Icon(Icons.refresh),
               label: const Text('Generate Another'),
             ),
             const SizedBox(height: 10),
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _navy,
-                side: const BorderSide(color: _navy),
-                minimumSize: const Size.fromHeight(52),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: _gold,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(54),
               ),
               onPressed: isSaving ? null : keepCurrentLogo,
               icon: const Icon(Icons.undo),
