@@ -126,11 +126,10 @@ class _SellerBrandScreenState extends State<SellerBrandScreen> {
           const SizedBox(height: 10),
           SizedBox(
             height: 52,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _navy,
-                side: const BorderSide(color: _gold),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: _gold,
+                foregroundColor: Colors.white,
               ),
               onPressed: () => context.push('/create-listing'),
               icon: const Icon(Icons.add),
@@ -140,11 +139,10 @@ class _SellerBrandScreenState extends State<SellerBrandScreen> {
           const SizedBox(height: 10),
           SizedBox(
             height: 52,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _navy,
-                side: const BorderSide(color: _gold),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: _gold,
+                foregroundColor: Colors.white,
               ),
               onPressed: () {
               final generatedBrand = GeneratedBrandModel(
