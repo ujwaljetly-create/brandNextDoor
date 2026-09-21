@@ -313,7 +313,7 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
         onDestinationSelected: (index) {
           if (index == 0) context.go('/buyer-home');
           if (index == 1) return;
-          if (index == 2) context.push('/buyer-orders');
+          if (index == 2) context.push('/messages?role=buyer');
           if (index == 3) context.push('/settings?role=buyer');
         },
         destinations: const [
@@ -324,8 +324,8 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
             label: 'Explore',
           ),
           NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            label: 'Orders',
+            icon: Icon(Icons.chat_bubble_outline),
+            label: 'Messages',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
