@@ -329,10 +329,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                           activeThumbColor: _gold,
                           onChanged: (v) => setState(() => useAi = v),
                         ),
-                        if (useAi) ...[
-                          const AiDisclosure(level: AiAssistanceLevel.partialAi, detail: 'AI drafts product details and suggests a price; you review and set the final listing, images, price and delivery options.'),
-                          const SizedBox(height: 10),
-                        ]
+                        AiDisclosure(level: useAi ? AiAssistanceLevel.partialAi : AiAssistanceLevel.manual, detail: useAi ? 'AI drafts product details and suggests a price; you review and set the final listing, images, price and delivery options.' : 'You write the listing and set the price, images and fulfillment options yourself.'),
+                        const SizedBox(height: 10),
                           SizedBox(
                             width: double.infinity,
                             child: OutlinedButton.icon(
