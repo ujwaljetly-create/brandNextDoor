@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../widgets/city_picker_sheet.dart';
+import '../../../widgets/ai_disclosure.dart';
 import '../models/generated_brand_model.dart';
 import '../services/ai_brand_service.dart';
 
@@ -267,6 +268,8 @@ Create a complete, premium local brand identity.
                   const SizedBox(height: 18),
                   const Text('Brand Colors', style: TextStyle(color: _navy, fontFamily: 'serif', fontSize: 20, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 6),
+                  const AiDisclosure(level: AiAssistanceLevel.partialAi, detail: 'AI generates the brand name, tagline, description and identity suggestions from your business details. You choose the colors; logo generation happens separately after the brand preview.'),
+                  const SizedBox(height: 14),
                   const Text('Choose up to three colors. AI will use them when shaping your brand identity and logo.', style: TextStyle(color: Color(0xFF66727A), fontSize: 13, height: 1.35)),
                   const SizedBox(height: 12),
                   Wrap(
@@ -399,7 +402,7 @@ Create a complete, premium local brand identity.
               ),
               const SizedBox(height: 34),
               const Text(
-                'Creating your brand identity,\nlogo, colors, and more...',
+                'Generating brand identity text and suggestions...',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: _navy, fontSize: 17, height: 1.45),
               ),
@@ -411,7 +414,7 @@ Create a complete, premium local brand identity.
               const SizedBox(height: 28),
               const _ProgressLine('Analyzing your business details'),
               const _ProgressLine('Generating brand identity'),
-              const _ProgressLine('Creating logo options'),
+              const _ProgressLine('Preparing your brand preview'),
               const _ProgressLine('Crafting your brand story'),
             ],
           ),
