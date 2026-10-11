@@ -231,3 +231,135 @@ exports.notifyFollowersOnNewDeal = onDocumentUpdated(
     });
   },
 );
+
+
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { defineSecret } = require('firebase-functions/params');
+const openAiSecret = defineSecret('OPENAI_API_KEY');
+
+// Credits are internal usage units, not OpenAI tokens or currency.
+// Costs are versioned on the server and never accepted from the client.
+const AI_COSTS = Object.freeze({
+  brand_identity: 5,
+  brand_name: 2,
+  brand_tagline: 2,
+  brand_description: 2,
+  color_hex: 1,
+  logo: 20,
+});
+const walletRef = (uid) => db.collection('ai_wallets').doc(uid);
+const requestRef = (uid, id) => walletRef(uid).collection('requests').doc(id);
+const MAX_INPUT = 3500;
+
+exports.getAiWallet = onCall({ enforceAppCheck: false }, async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in first.');
+  const uid = request.auth.uid;
+  const wallet = await walletRef(uid).get();
+  const transactions = await walletRef(uid).collection('ledger').orderBy('createdAt', 'desc').limit(30).get();
+  return {
+    balance: wallet.exists ? Number(wallet.data().balance || 0) : 0,
+    costs: AI_COSTS,
+    history: transactions.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate()?.toISOString() || null,
+    })),
+  };
+});
+
+exports.generateWithAiCredits = onCall(
+  { secrets: [openAiSecret], timeoutSeconds: 120, memory: '1GiB', enforceAppCheck: false },
+  async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in first.');
+    const uid = request.auth.uid;
+    const { feature, input, requestId } = request.data || {};
+    if (!Object.prototype.hasOwnProperty.call(AI_COSTS, feature)) {
+      throw new HttpsError('invalid-argument', 'Unsupported AI feature.');
+    }
+    if (typeof requestId !== 'string' || !/^[a-zA-Z0-9_-]{12,80}$/.test(requestId)) {
+      throw new HttpsError('invalid-argument', 'Invalid request ID.');
+    }
+    if (typeof input !== 'string' || !input.trim() || input.length > MAX_INPUT) {
+      throw new HttpsError('invalid-argument', 'Input must be 1-3500 characters.');
+    }
+    const key = openAiSecret.value();
+    if (!key) throw new HttpsError('failed-precondition', 'AI service is not configured.');
+
+    const cost = AI_COSTS[feature];
+    const wallet = walletRef(uid);
+    const job = requestRef(uid, requestId);
+    const ledger = wallet.collection('ledger').doc(requestId);
+    await db.runTransaction(async (tx) => {
+      const [jobSnap, walletSnap] = await Promise.all([tx.get(job), tx.get(wallet)]);
+      if (jobSnap.exists) throw new HttpsError('already-exists', 'Request ID already used. Refresh wallet history.');
+      const balance = walletSnap.exists ? Number(walletSnap.data().balance || 0) : 0;
+      if (balance < cost) throw new HttpsError('resource-exhausted', 'Not enough AI credits.');
+      tx.set(wallet, { balance: balance - cost, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      tx.create(job, { feature, cost, state: 'reserved', createdAt: admin.firestore.FieldValue.serverTimestamp() });
+      tx.create(ledger, { feature, delta: -cost, status: 'reserved', createdAt: admin.firestore.FieldValue.serverTimestamp() });
+    });
+
+    try {
+      let output;
+      if (feature === 'logo') {
+        let parsed;
+        try { parsed = JSON.parse(input); } catch (_) {
+          throw new Error('Logo input must contain valid brand JSON.');
+        }
+        const prompt = [
+          'Create a premium modern local-business logo with transparent background.',
+          'Professional typography, clean vector-like composition, suitable for a storefront.',
+          'Brand name: ' + String(parsed.brandName || '').slice(0, 150),
+          'Tagline: ' + String(parsed.tagline || '').slice(0, 250),
+          'Description: ' + String(parsed.description || '').slice(0, 1000),
+          'Colors: ' + JSON.stringify(parsed.colors || []).slice(0, 400),
+        ].join('\n');
+        const response = await fetch('https://api.openai.com/v1/images/generations', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: 'gpt-image-1', size: '1024x1024', background: 'transparent', prompt }),
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.data?.[0]?.b64_json) throw new Error(payload.error?.message || 'Logo generation failed.');
+        output = payload.data[0].b64_json;
+      } else {
+        const prompts = {
+          brand_identity: 'You are a branding consultant. Return ONLY JSON with keys brandName, tagline, description, colors (array), personalityTraits (array), targetAudience (array), brandScore (integer, subjective AI estimate).',
+          brand_name: 'Generate exactly one premium brand name. Return plain text only.',
+          brand_tagline: 'Generate one concise professional tagline. Return plain text only.',
+          brand_description: 'Generate a compelling business description. Return plain text only.',
+          color_hex: 'Convert the color description into RGB. Return ONLY JSON with a hex key like {"hex":"#AABBCC"}.',
+        };
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'system', content: prompts[feature] }, { role: 'user', content: input }],
+            ...(feature === 'brand_identity' || feature === 'color_hex' ? { response_format: { type: 'json_object' } } : {}),
+          }),
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.choices?.[0]?.message?.content) throw new Error(payload.error?.message || 'AI generation failed.');
+        output = payload.choices[0].message.content;
+      }
+      await db.runTransaction(async (tx) => {
+        const snapshot = await tx.get(job);
+        if (snapshot.data()?.state !== 'reserved') throw new Error('Unexpected AI request state.');
+        tx.update(job, { state: 'completed', completedAt: admin.firestore.FieldValue.serverTimestamp() });
+        tx.update(ledger, { status: 'completed' });
+      });
+      return { output, creditsUsed: cost };
+    } catch (error) {
+      await db.runTransaction(async (tx) => {
+        const [jobSnap, walletSnap] = await Promise.all([tx.get(job), tx.get(wallet)]);
+        if (jobSnap.data()?.state !== 'reserved') return;
+        const balance = Number(walletSnap.data()?.balance || 0);
+        tx.set(wallet, { balance: balance + cost, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        tx.update(job, { state: 'refunded', completedAt: admin.firestore.FieldValue.serverTimestamp() });
+        tx.update(ledger, { status: 'refunded' });
+      });
+      throw new HttpsError('internal', 'AI generation failed; reserved credits were refunded.');
+    }
+  },
+);
