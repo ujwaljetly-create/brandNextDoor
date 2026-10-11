@@ -3,173 +3,128 @@ import 'package:go_router/go_router.dart';
 
 import '../models/generated_listing_model.dart';
 
-class AIListingResultScreen
-    extends StatelessWidget {
-  final GeneratedListingModel
-      listing;
+class AIListingResultScreen extends StatelessWidget {
+  final GeneratedListingModel listing;
 
-  const AIListingResultScreen({
-    super.key,
-    required this.listing,
-  });
+  const AIListingResultScreen({super.key, required this.listing});
+
+  static const _navy = Color(0xFF0C2430);
+  static const _gold = Color(0xFFC99245);
+  static const _cream = Color(0xFFF8F3EA);
 
   @override
-  Widget build(
-      BuildContext context) {
+  Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _cream,
       appBar: AppBar(
-        title: const Text(
-          'AI Listing',
+        backgroundColor: _cream,
+        elevation: 0,
+        leading: IconButton(
+          onPressed: () => context.pop(),
+          icon: const Icon(Icons.arrow_back, color: _navy),
         ),
+        title: const Text('Your Listing is Ready!', style: TextStyle(color: _navy, fontFamily: 'serif', fontWeight: FontWeight.w700)),
       ),
-      body: SingleChildScrollView(
-        padding:
-            const EdgeInsets.all(
-          24,
-        ),
+      body: SafeArea(
+        top: false,
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
           children: [
-
-            Text(
-              listing.title,
-              style:
-                  const TextStyle(
-                fontSize: 28,
-                fontWeight:
-                    FontWeight.bold,
-                color:
-                    Colors.white,
-              ),
-            ),
-
-            const SizedBox(
-              height: 24,
-            ),
-
-            const Text(
-              'Description',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight:
-                    FontWeight.bold,
-                color:
-                    Colors.white,
-              ),
-            ),
-
-            const SizedBox(
-              height: 8,
-            ),
-
-            Text(
-              listing.description,
-              style:
-                  const TextStyle(
-                color:
-                    Colors.white,
-              ),
-            ),
-
-            const SizedBox(
-              height: 24,
-            ),
-
-            const Text(
-              'Benefits',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight:
-                    FontWeight.bold,
-                color:
-                    Colors.white,
-              ),
-            ),
-
-            const SizedBox(
-              height: 8,
-            ),
-
-            Text(
-              listing.benefits,
-              style:
-                  const TextStyle(
-                color:
-                    Colors.white,
-              ),
-            ),
-
-            const SizedBox(
-              height: 24,
-            ),
-
-            const Text(
-              'Keywords',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight:
-                    FontWeight.bold,
-                color:
-                    Colors.white,
-              ),
-            ),
-
-            const SizedBox(
-              height: 10,
-            ),
-
-            Wrap(
-              spacing: 8,
-              children: listing
-                  .keywords
-                  .map(
-                    (e) => Chip(
-                      label:
-                          Text(e),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 22),
+                children: [
+                  const Text('Here’s what we created for you.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF6D777C))),
+                  const SizedBox(height: 18),
+                  Container(
+                    height: 190,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      gradient: const LinearGradient(colors: [Color(0xFFF1DEC0), Color(0xFFE2C79D)]),
                     ),
-                  )
-                  .toList(),
-            ),
-
-            const SizedBox(
-              height: 24,
-            ),
-
-            Text(
-              'Suggested Price: \$${listing.suggestedPrice}',
-              style:
-                  const TextStyle(
-                fontSize: 22,
-                fontWeight:
-                    FontWeight.bold,
-                color:
-                    Colors.white,
+                    child: const Center(
+                      child: Icon(Icons.shopping_bag_outlined, color: _navy, size: 82),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _row('Product Title', listing.title),
+                  _row('Suggested Price', '\$${listing.suggestedPrice.toStringAsFixed(2)}'),
+                  const SizedBox(height: 12),
+                  _card(
+                    title: 'Description',
+                    child: Text(listing.description, style: const TextStyle(color: _navy, height: 1.5)),
+                  ),
+                  _card(
+                    title: 'Benefits',
+                    child: Text(listing.benefits, style: const TextStyle(color: _navy, height: 1.45)),
+                  ),
+                  _card(
+                    title: 'Tags',
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: listing.keywords.map((tag) => Chip(label: Text('#$tag'), backgroundColor: const Color(0xFFF1E7D8))).toList(),
+                    ),
+                  ),
+                ],
               ),
             ),
-
-            const SizedBox(
-              height: 40,
-            ),
-
-            SizedBox(
-              width:
-                  double.infinity,
-              child:
-                  ElevatedButton(
-                onPressed: () {
-                  context.push(
-                    '/create-listing',
-                    extra: listing,
-                  );
-                },
-                child: const Text(
-                  'Use This Listing',
-                ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => context.pop(),
+                      child: const Text('Edit Prompt'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(backgroundColor: _gold, foregroundColor: Colors.white),
+                      onPressed: () => context.push('/create-listing', extra: listing),
+                      child: const Text('Use Listing', style: TextStyle(fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _row(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 120, child: Text(label, style: const TextStyle(color: Color(0xFF68747A), fontSize: 13))),
+          Expanded(child: Text(value, style: const TextStyle(color: _navy, fontWeight: FontWeight.w700))),
+        ],
+      ),
+    );
+  }
+
+  Widget _card({required String title, required Widget child}) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE6DED2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(color: _navy, fontWeight: FontWeight.w800, fontSize: 17)),
+          const SizedBox(height: 9),
+          child,
+        ],
       ),
     );
   }

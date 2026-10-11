@@ -8,101 +8,56 @@ import '../../buyer/screens/buyer_home_screen.dart';
 import '../../onboarding/screens/welcome_screen.dart';
 import '../../seller/screens/seller_dashboard_screen.dart';
 import '../../seller/screens/seller_onboarding_screen.dart';
-import 'role_switch_screen.dart';
 
-class AuthGate
-    extends StatelessWidget {
-  const AuthGate({
-    super.key,
-  });
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
 
   @override
-  Widget build(
-      BuildContext context) {
-    final user =
-        FirebaseAuth
-            .instance
-            .currentUser;
-
-    if (user == null) {
-  return const WelcomeScreen();
-}
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const WelcomeScreen();
 
     return FutureBuilder<UserModel?>(
-  future: UserService().getUser(
-    user.uid,
-  ),
-  builder: (context, snapshot) {
+      future: UserService().getUser(user.uid),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
 
-    if (snapshot.connectionState ==
-        ConnectionState.waiting) {
-      return const Scaffold(
-        body: Center(
-          child:
-              CircularProgressIndicator(),
-        ),
-      );
-    }
+        final appUser = snapshot.data;
+        if (appUser == null) return const WelcomeScreen();
 
-    if (!snapshot.hasData ||
-        snapshot.data == null) {
-      return const WelcomeScreen();
-    }
+        // Every account with buyer access launches into the buyer experience.
+        // Seller onboarding is never selected automatically for a buyer.
+        if (appUser.isBuyer) return const BuyerHomeScreen();
 
-    final appUser = snapshot.data!;
+        // Keep support for legacy seller-only accounts.
+        if (appUser.isSeller) {
+          return FutureBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            future: FirebaseFirestore.instance
+                .collection('brands')
+                .where('sellerId', isEqualTo: appUser.uid)
+                .limit(1)
+                .get(),
+            builder: (context, brandSnapshot) {
+              if (brandSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
 
-    if (appUser.roles.contains(
-            'buyer') &&
-        appUser.roles.contains(
-            'seller')) {
-      return const RoleSwitchScreen();
-    }
+              final hasBrand = brandSnapshot.data?.docs.isNotEmpty ?? false;
+              return hasBrand
+                  ? const SellerDashboardScreen()
+                  : const SellerOnboardingScreen();
+            },
+          );
+        }
 
-    if (appUser.roles.contains(
-    'seller')) {
-  return FutureBuilder<QuerySnapshot>(
-    future:
-        FirebaseFirestore.instance
-            .collection('brands')
-            .where(
-              'sellerId',
-              isEqualTo:
-                  appUser.uid,
-            )
-            .limit(1)
-            .get(),
-    builder:
-        (context, brandSnapshot) {
-
-      if (brandSnapshot
-              .connectionState ==
-          ConnectionState.waiting) {
-        return const Scaffold(
-          body: Center(
-            child:
-                CircularProgressIndicator(),
-          ),
-        );
-      }
-
-      final hasBrand =
-          brandSnapshot
-              .data
-              ?.docs
-              .isNotEmpty ??
-          false;
-
-      if (!hasBrand) {
-        return const SellerOnboardingScreen();
-      }
-
-      return const SellerDashboardScreen();
-    },
-  );
-}
-
-    return const BuyerHomeScreen();
-  },
-);
+        return const BuyerHomeScreen();
+      },
+    );
   }
 }

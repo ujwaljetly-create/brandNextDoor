@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../core/ai/ai_config.dart';
@@ -13,65 +12,57 @@ class AILogoService {
     required List colors,
   }) async {
     final response = await http.post(
-      Uri.parse(
-        'https://api.openai.com/v1/images/generations',
-      ),
+      Uri.parse('https://api.openai.com/v1/images/generations'),
       headers: {
-        'Authorization':
-            'Bearer ${AIConfig.apiKey}',
-        'Content-Type':
-            'application/json',
+        'Authorization': 'Bearer ${AIConfig.apiKey}',
+        'Content-Type': 'application/json',
       },
       body: jsonEncode({
-        "model": "gpt-image-1",
-        "size": "1024x1024",
-        "background": "transparent",
-        "prompt": """
+        'model': 'gpt-image-1',
+        'size': '1024x1024',
+        'background': 'transparent',
+        'prompt': '''
 Create a premium modern business logo.
 
-Brand Name:
-$brandName
-
-Tagline:
-$tagline
-
-Business Description:
-$description
-
-Brand Colors:
-${colors.join(', ')}
+Brand Name: $brandName
+Tagline: $tagline
+Business Description: $description
+Brand Colors: ${colors.join(', ')}
 
 Requirements:
 - Transparent background
-- Premium startup style
-- Modern logo
-- Professional typography
-- Clean vector style
-- Suitable for mobile app and website
-- High quality branding
-""",
+- Premium local-business style
+- Modern, professional typography
+- Clean vector-like composition
+- Suitable for a mobile storefront and website
+''',
       }),
     );
 
-    debugPrint(response.body);
-
-    if (response.statusCode != 200) {
-      throw Exception(
-        'Logo generation failed: ${response.body}',
-      );
+    Map<String, dynamic> data;
+    try {
+      data = jsonDecode(response.body) as Map<String, dynamic>;
+    } catch (_) {
+      throw Exception('Logo service returned an invalid response.');
     }
 
-    final data =
-        jsonDecode(response.body);
-
-    if (data['data'] == null ||
-        data['data'].isEmpty) {
-      throw Exception(
-        'No logo returned from OpenAI',
-      );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final apiError = data['error'];
+      final message = apiError is Map
+          ? (apiError['message'] ?? 'Logo generation failed').toString()
+          : 'Logo generation failed';
+      throw Exception(message);
     }
 
-    return data['data'][0]
-        ['b64_json'];
+    final items = data['data'];
+    if (items is! List || items.isEmpty || items.first is! Map) {
+      throw Exception('No logo was returned. Please try again.');
+    }
+
+    final encoded = (items.first as Map)['b64_json'];
+    if (encoded is! String || encoded.isEmpty) {
+      throw Exception('The generated logo could not be read. Please try again.');
+    }
+    return encoded;
   }
 }
