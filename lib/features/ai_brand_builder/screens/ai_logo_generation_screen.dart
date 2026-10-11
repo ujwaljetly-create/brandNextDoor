@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../widgets/ai_disclosure.dart';
 import '../../ai_logo/services/ai_logo_service.dart';
 import '../../brand/services/brand_service.dart';
 import '../models/generated_brand_model.dart';
@@ -178,6 +179,8 @@ class _AILogoGenerationScreenState extends State<AILogoGenerationScreen> {
                           ),
               ),
             ),
+            const SizedBox(height: 12),
+            const AiDisclosure(level: AiAssistanceLevel.fullAi, detail: 'OpenAI generates a new logo image from your brand details and colors. You choose whether to save it or keep your existing logo.'),
             const SizedBox(height: 18),
             FilledButton.icon(
               style: FilledButton.styleFrom(
