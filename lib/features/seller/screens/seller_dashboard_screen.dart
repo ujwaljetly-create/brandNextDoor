@@ -9,6 +9,7 @@ import '../../brand/services/brand_service.dart';
 import '../../listings/services/listing_service.dart';
 import '../../orders/services/order_service.dart';
 import '../../orders/widgets/order_card.dart';
+import '../../../widgets/ai_disclosure.dart';
 import '../services/market_tips_service.dart';
 import '../widgets/dashboard_stat_card.dart';
 import '../widgets/sales_trend_card.dart';
@@ -151,6 +152,8 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
         ]),
         const SizedBox(height: 5),
         const Text('AI suggestions based on your store and available marketplace signals.', style: TextStyle(color: Color(0xFF718087), fontSize: 12)),
+        const SizedBox(height: 10),
+        const AiDisclosure(level: AiAssistanceLevel.partialAi, compact: true, detail: 'AI suggests improvements using your brand, listings and available marketplace data. Competitor coverage may be incomplete; these are recommendations, not guaranteed results.'),
         const SizedBox(height: 14),
         FutureBuilder<MarketTipsResult>(
           future: marketTipsFuture,
