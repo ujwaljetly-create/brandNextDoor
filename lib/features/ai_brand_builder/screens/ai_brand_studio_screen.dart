@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/ai/openai_service.dart';
 import '../../brand/services/brand_service.dart';
+import '../../../widgets/ai_disclosure.dart';
 import '../models/generated_brand_model.dart';
 
 class AIBrandStudioScreen extends StatefulWidget {
@@ -375,6 +376,8 @@ class _AIBrandStudioScreenState extends State<AIBrandStudioScreen> {
             label: const Text('Edit Details'),
           ),
           const SizedBox(height: 10),
+          const AiDisclosure(level: AiAssistanceLevel.partialAi, detail: 'This identity was generated with AI using your business details and chosen colors. The brand score is an AI estimate, not a verified market rating. Your logo is generated in a separate step.'),
+          const SizedBox(height: 12),
           if (widget.logoPreference == 'ai')
             OutlinedButton.icon(
               style: OutlinedButton.styleFrom(foregroundColor: _navy, side: const BorderSide(color: _gold)),
