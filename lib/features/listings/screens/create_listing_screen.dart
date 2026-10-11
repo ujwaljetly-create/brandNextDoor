@@ -11,6 +11,7 @@ import 'package:uuid/uuid.dart';
 import '../../../models/listing_model.dart';
 import '../../../widgets/city_picker_sheet.dart';
 import '../../brand/services/brand_service.dart';
+import '../../../widgets/ai_disclosure.dart';
 import '../models/generated_listing_model.dart';
 import '../services/listing_service.dart';
 
@@ -328,7 +329,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                           activeThumbColor: _gold,
                           onChanged: (v) => setState(() => useAi = v),
                         ),
-                        if (useAi)
+                        if (useAi) ...[
+                          const AiDisclosure(level: AiAssistanceLevel.partialAi, detail: 'AI drafts product details and suggests a price; you review and set the final listing, images, price and delivery options.'),
+                          const SizedBox(height: 10),
+                        ]
                           SizedBox(
                             width: double.infinity,
                             child: OutlinedButton.icon(
