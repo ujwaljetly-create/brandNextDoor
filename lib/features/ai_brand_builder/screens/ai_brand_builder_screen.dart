@@ -268,7 +268,7 @@ Create a complete, premium local brand identity.
                   const SizedBox(height: 18),
                   const Text('Brand Colors', style: TextStyle(color: _navy, fontFamily: 'serif', fontSize: 20, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 6),
-                  const AiDisclosure(level: AiAssistanceLevel.partialAi, detail: 'AI generates the brand name, tagline, description and identity suggestions from your business details. You choose the colors; logo generation happens separately after the brand preview.'),
+                  AiDisclosure(level: useAi ? AiAssistanceLevel.partialAi : AiAssistanceLevel.manual, detail: useAi ? 'AI generates the brand name, tagline, description and identity suggestions from your business details. You choose the colors; logo generation happens separately after the brand preview.' : 'You will enter your own brand information without AI brand identity generation.'),
                   const SizedBox(height: 14),
                   const Text('Choose up to three colors. AI will use them when shaping your brand identity and logo.', style: TextStyle(color: Color(0xFF66727A), fontSize: 13, height: 1.35)),
                   const SizedBox(height: 12),
@@ -318,7 +318,7 @@ Create a complete, premium local brand identity.
                               ),
                               SizedBox(height: 4),
                               Text(
-                                'Let our AI create a complete identity based on your details.',
+                                'AI drafts your brand identity from your business details. Logo creation is a separate step.',
                                 style: TextStyle(
                                   color: Color(0xFF66727A),
                                   fontSize: 12,
