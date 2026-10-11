@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 
+import '../features/ai_wallet/screens/ai_wallet_screen.dart';
 import '../features/ai_brand_builder/models/generated_brand_model.dart';
 import '../features/ai_brand_builder/screens/ai_brand_builder_screen.dart';
 import '../features/ai_brand_builder/screens/ai_brand_studio_screen.dart';
@@ -45,6 +46,7 @@ class AppRouter {
     initialLocation: '/',
     routes: [
       GoRoute(path: '/', builder: (context, state) => const AuthGate()),
+      GoRoute(path: '/ai-wallet', builder: (context, state) => const AiWalletScreen()),
       GoRoute(
         path: '/settings',
         builder: (context, state) {
