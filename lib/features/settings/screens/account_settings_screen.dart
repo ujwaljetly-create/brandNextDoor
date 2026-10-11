@@ -163,6 +163,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             _profileHeader('Seller'),
             const SizedBox(height: 20),
             _item(Icons.shopping_bag_outlined, 'Shop on Brand Next Door', () => context.go('/buyer-home')),
+            _item(Icons.auto_awesome_outlined, 'AI Credits', () => context.push('/ai-wallet')),
             _item(Icons.storefront_outlined, 'Business Information', () => context.push('/seller-brand')),
             _item(Icons.inventory_2_outlined, 'Manage Products', () => context.push('/my-listings')),
             _item(Icons.people_outline, 'Followers', () => context.push('/seller-followers')),
