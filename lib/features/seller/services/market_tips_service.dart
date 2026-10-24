@@ -1,9 +1,7 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:http/http.dart' as http;
-
-import '../../../core/ai/ai_config.dart';
+import '../../ai_wallet/services/ai_credit_service.dart';
 import '../../../models/listing_model.dart';
 
 class MarketTipsResult {
@@ -84,22 +82,11 @@ Return ONLY JSON:
 {"tips":["tip 1","tip 2","tip 3"]}
 ''';
 
-    final response = await http.post(
-      Uri.parse('https://api.openai.com/v1/chat/completions'),
-      headers: {'Authorization': 'Bearer ${AIConfig.apiKey}', 'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'model': 'gpt-4o-mini',
-        'messages': [
-          {'role': 'system', 'content': 'Return only valid JSON. Give evidence-aware marketplace advice.'},
-          {'role': 'user', 'content': prompt},
-        ],
-        'response_format': {'type': 'json_object'},
-      }),
+    final responseText = await AiCreditService().generateText(
+      feature: 'market_tips',
+      input: prompt.length > 11500 ? prompt.substring(0, 11500) : prompt,
     );
-
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    if (data['error'] != null) throw Exception((data['error'] as Map)['message']);
-    final parsed = jsonDecode(data['choices'][0]['message']['content'].toString()) as Map<String, dynamic>;
+    final parsed = jsonDecode(responseText) as Map<String, dynamic>;
     final tips = List<String>.from(parsed['tips'] ?? const <String>[]).where((tip) => tip.trim().isNotEmpty).take(3).toList();
 
     return MarketTipsResult(
