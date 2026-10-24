@@ -1,180 +1,77 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../../models/order_model.dart';
 
+/// All order mutations run on trusted Firebase Functions.
+/// Read streams remain Firestore queries to preserve existing screens.
 class OrderService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  final FirebaseFunctions functions = FirebaseFunctions.instance;
 
   Future<void> createOrder(OrderModel order) async {
-    await firestore
-        .collection('orders')
-        .doc(order.orderId)
-        .set(order.toMap());
-  }
-
-  Stream<List<OrderModel>> getBuyerOrders(String buyerId) {
-    return firestore
-        .collection('orders')
-        .where('buyerId', isEqualTo: buyerId)
-        .snapshots()
-        .map((snapshot) {
-      final orders = snapshot.docs
-          .map((doc) => OrderModel.fromMap(doc.data()))
-          .toList();
-
-      orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return orders;
+    await functions.httpsCallable('createTrustedOrder').call({
+      'orderId': order.orderId,
+      'listingId': order.listingId,
+      'quantity': order.quantity,
+      'fulfillmentMethod': order.fulfillmentMethod,
     });
   }
 
-  Stream<List<OrderModel>> getSellerOrders(String sellerId) {
-    return firestore
-        .collection('orders')
-        .where('sellerId', isEqualTo: sellerId)
-        .snapshots()
-        .map((snapshot) {
-      final orders = snapshot.docs
-          .map((doc) => OrderModel.fromMap(doc.data()))
-          .toList();
-
-      orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return orders;
-    });
-  }
-
-  Future<void> acceptOrder(String orderId) async {
-    await _transition(
-      orderId: orderId,
-      fromStatus: 'pending',
-      toStatus: 'accepted',
-      extra: {
-        'acceptedAt': Timestamp.now(),
-      },
-    );
-  }
-
-  Future<void> rejectOrder({
-    required String orderId,
-    required String reason,
-  }) async {
-    await _transition(
-      orderId: orderId,
-      fromStatus: 'pending',
-      toStatus: 'rejected',
-      extra: {
-        'rejectionReason': reason.trim(),
-        'completedAt': Timestamp.now(),
-      },
-    );
-  }
-
-  Future<void> cancelOrder(String orderId) async {
-    await _transition(
-      orderId: orderId,
-      fromStatus: 'pending',
-      toStatus: 'cancelled',
-      extra: {
-        'completedAt': Timestamp.now(),
-      },
-    );
-  }
-
-  Future<void> markReadyForPickup(String orderId) async {
-    await _transition(
-      orderId: orderId,
-      fromStatus: 'accepted',
-      toStatus: 'ready_for_pickup',
-    );
-  }
-
-  Future<void> markOutForDelivery(String orderId) async {
-    await _transition(
-      orderId: orderId,
-      fromStatus: 'accepted',
-      toStatus: 'out_for_delivery',
-    );
-  }
-
-  Future<void> markDelivered(String orderId) async {
-    final orderRef = firestore.collection('orders').doc(orderId);
-
-    await firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(orderRef);
-      if (!snapshot.exists) {
-        throw Exception('Order no longer exists.');
-      }
-
-      final data = snapshot.data()!;
-      final current = data['status'] ?? '';
-      if (current != 'ready_for_pickup' &&
-          current != 'out_for_delivery') {
-        throw Exception('Order is not ready to be completed.');
-      }
-
-      final listingId = (data['listingId'] ?? '').toString();
-      final quantityValue = data['quantity'] ?? 1;
-      final quantity = quantityValue is int
-          ? quantityValue
-          : int.tryParse(quantityValue.toString()) ?? 1;
-
-      DocumentReference<Map<String, dynamic>>? listingRef;
-      DocumentSnapshot<Map<String, dynamic>>? listingSnapshot;
-
-      if (listingId.isNotEmpty) {
-        listingRef = firestore.collection('listings').doc(listingId);
-        listingSnapshot = await transaction.get(listingRef);
-      }
-
-      transaction.update(orderRef, {
-        'status': 'delivered',
-        'updatedAt': Timestamp.now(),
-        'completedAt': Timestamp.now(),
+  Stream<List<OrderModel>> getBuyerOrders(String buyerId) => firestore
+      .collection('orders')
+      .where('buyerId', isEqualTo: buyerId)
+      .snapshots()
+      .map((snapshot) {
+        final orders = snapshot.docs.map((doc) => OrderModel.fromMap(doc.data())).toList();
+        orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return orders;
       });
 
-      if (listingRef != null && listingSnapshot?.exists == true) {
-        final soldValue = listingSnapshot!.data()?['soldCount'] ?? 0;
-        final soldCount = soldValue is int
-            ? soldValue
-            : int.tryParse(soldValue.toString()) ?? 0;
-
-        transaction.update(listingRef, {
-          'soldCount': soldCount + quantity,
-        });
-      }
-    });
-  }
-
-  Future<void> updateStatus(String orderId, String status) async {
-    await firestore.collection('orders').doc(orderId).update({
-      'status': status,
-      'updatedAt': Timestamp.now(),
-    });
-  }
-
-  Future<void> _transition({
-    required String orderId,
-    required String fromStatus,
-    required String toStatus,
-    Map<String, dynamic>? extra,
-  }) async {
-    final ref = firestore.collection('orders').doc(orderId);
-
-    await firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(ref);
-      if (!snapshot.exists) {
-        throw Exception('Order no longer exists.');
-      }
-
-      final current = snapshot.data()?['status'] ?? '';
-      if (current != fromStatus) {
-        throw Exception('Order status has already changed.');
-      }
-
-      transaction.update(ref, {
-        'status': toStatus,
-        'updatedAt': Timestamp.now(),
-        ...?extra,
+  Stream<List<OrderModel>> getSellerOrders(String sellerId) => firestore
+      .collection('orders')
+      .where('sellerId', isEqualTo: sellerId)
+      .snapshots()
+      .map((snapshot) {
+        final orders = snapshot.docs.map((doc) => OrderModel.fromMap(doc.data())).toList();
+        orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return orders;
       });
+
+  Future<void> _action(String orderId, String action, {String? reason}) async {
+    await functions.httpsCallable('transitionTrustedOrder').call({
+      'orderId': orderId,
+      'action': action,
+      if (reason != null) 'reason': reason,
     });
+  }
+
+  Future<void> acceptOrder(String orderId) => _action(orderId, 'accept');
+
+  Future<void> rejectOrder({required String orderId, required String reason}) =>
+      _action(orderId, 'reject', reason: reason);
+
+  Future<void> cancelOrder(String orderId) => _action(orderId, 'cancel');
+
+  Future<void> markReadyForPickup(String orderId) => _action(orderId, 'ready_for_pickup');
+
+  Future<void> markOutForDelivery(String orderId) => _action(orderId, 'out_for_delivery');
+
+  Future<void> markDelivered(String orderId) => _action(orderId, 'delivered');
+
+  Future<void> updateStatus(String orderId, String status) {
+    const actions = {
+      'accepted': 'accept',
+      'rejected': 'reject',
+      'cancelled': 'cancel',
+      'ready_for_pickup': 'ready_for_pickup',
+      'out_for_delivery': 'out_for_delivery',
+      'delivered': 'delivered',
+    };
+    final action = actions[status];
+    if (action == null || action == 'reject') {
+      throw ArgumentError.value(status, 'status', 'Use rejectOrder with a reason or a supported transition.');
+    }
+    return _action(orderId, action);
   }
 }
