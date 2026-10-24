@@ -1,3 +1,7 @@
+# Superseded by Phase 2.5
+
+See [Phase 2.5 validation](PHASE_2_5_VALIDATION.md) for the current implementation, deployment instructions, known limitations, and security gates.
+
 # AI Credits — Phase 2 deployment and safety checklist
 
 ## Current rollout status
