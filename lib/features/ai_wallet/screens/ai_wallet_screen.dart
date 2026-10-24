@@ -31,6 +31,23 @@ class _AiWalletScreenState extends State<AiWalletScreen> {
     return Map<String, dynamic>.from(result.data as Map);
   }
 
+  String walletError(Object? error) {
+    if (error is FirebaseFunctionsException) {
+      switch (error.code) {
+        case 'unavailable':
+        case 'deadline-exceeded':
+          return 'You appear to be offline. Connect to Wi-Fi or mobile data and try again.';
+        case 'unauthenticated':
+          return 'Please sign in again to view your AI credits.';
+        case 'permission-denied':
+          return 'We could not access your credits. Please contact support.';
+        default:
+          return 'We could not load your AI credits right now. Please try again.';
+      }
+    }
+    return 'We could not load your AI credits. Check your connection and try again.';
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: cream,
@@ -47,7 +64,13 @@ class _AiWalletScreenState extends State<AiWalletScreen> {
           if (snapshot.hasError) {
             return Center(child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('Could not load AI wallet. Deploy the Cloud Functions and try again.\n\n${snapshot.error}', textAlign: TextAlign.center),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.wifi_off_outlined, size: 48, color: navy),
+                const SizedBox(height: 16),
+                Text(walletError(snapshot.error), textAlign: TextAlign.center),
+                const SizedBox(height: 20),
+                FilledButton(onPressed: refresh, child: const Text('Try again')),
+              ]),
             ));
           }
           return const Center(child: CircularProgressIndicator(color: gold));
