@@ -246,22 +246,46 @@ const AI_COSTS = Object.freeze({
   brand_description: 2,
   color_hex: 1,
   logo: 20,
+  listing: 5,
+  market_tips: 3,
 });
 const walletRef = (uid) => db.collection('ai_wallets').doc(uid);
 const requestRef = (uid, id) => walletRef(uid).collection('requests').doc(id);
-const MAX_INPUT = 3500;
+const MAX_INPUT = 12000;
+const TRIAL_CREDITS = 30;
+const RATE_LIMIT_MS = 2500;
+const LEASE_MS = 4 * 60 * 1000;
+
+async function ensureTrialWallet(uid) {
+  const ref = walletRef(uid);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (snap.exists) return;
+    tx.create(ref, {
+      balance: TRIAL_CREDITS,
+      trialGranted: true,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    tx.create(ref.collection('ledger').doc('welcome_trial'), {
+      feature: 'welcome_trial', delta: TRIAL_CREDITS, status: 'completed',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  });
+}
 
 exports.getAiWallet = onCall({ enforceAppCheck: false }, async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in first.');
   const uid = request.auth.uid;
+  await ensureTrialWallet(uid);
   const wallet = await walletRef(uid).get();
   const transactions = await walletRef(uid).collection('ledger').orderBy('createdAt', 'desc').limit(30).get();
   return {
-    balance: wallet.exists ? Number(wallet.data().balance || 0) : 0,
+    balance: Number(wallet.data().balance || 0),
+    trialGranted: wallet.data().trialGranted === true,
     costs: AI_COSTS,
     history: transactions.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
+      id: doc.id, ...doc.data(),
       createdAt: doc.data().createdAt?.toDate()?.toISOString() || null,
     })),
   };
@@ -285,6 +309,7 @@ exports.generateWithAiCredits = onCall(
     const key = openAiSecret.value();
     if (!key) throw new HttpsError('failed-precondition', 'AI service is not configured.');
 
+    await ensureTrialWallet(uid);
     const cost = AI_COSTS[feature];
     const wallet = walletRef(uid);
     const job = requestRef(uid, requestId);
@@ -292,15 +317,18 @@ exports.generateWithAiCredits = onCall(
     await db.runTransaction(async (tx) => {
       const [jobSnap, walletSnap] = await Promise.all([tx.get(job), tx.get(wallet)]);
       if (jobSnap.exists) throw new HttpsError('already-exists', 'Request ID already used. Refresh wallet history.');
+      const last = walletSnap.data()?.lastRequestAt?.toMillis?.() || 0;
+      if (Date.now() - last < RATE_LIMIT_MS) throw new HttpsError('resource-exhausted', 'Please wait before another AI request.');
       const balance = walletSnap.exists ? Number(walletSnap.data().balance || 0) : 0;
       if (balance < cost) throw new HttpsError('resource-exhausted', 'Not enough AI credits.');
-      tx.set(wallet, { balance: balance - cost, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
-      tx.create(job, { feature, cost, state: 'reserved', createdAt: admin.firestore.FieldValue.serverTimestamp() });
+      tx.set(wallet, { balance: balance - cost, lastRequestAt: admin.firestore.FieldValue.serverTimestamp(), updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      tx.create(job, { feature, cost, state: 'reserved', leaseExpiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + LEASE_MS), createdAt: admin.firestore.FieldValue.serverTimestamp() });
       tx.create(ledger, { feature, delta: -cost, status: 'reserved', createdAt: admin.firestore.FieldValue.serverTimestamp() });
     });
 
     try {
       let output;
+      let usage = {};
       if (feature === 'logo') {
         let parsed;
         try { parsed = JSON.parse(input); } catch (_) {
@@ -329,6 +357,8 @@ exports.generateWithAiCredits = onCall(
           brand_tagline: 'Generate one concise professional tagline. Return plain text only.',
           brand_description: 'Generate a compelling business description. Return plain text only.',
           color_hex: 'Convert the color description into RGB. Return ONLY JSON with a hex key like {"hex":"#AABBCC"}.',
+          listing: 'Generate product listing JSON. Return ONLY valid JSON with title, description, benefits, keywords (array), suggestedPrice (number).',
+          market_tips: 'You are a marketplace growth analyst. Return ONLY JSON with tips array of exactly 3 concise evidence-aware suggestions. Do not invent competitor facts.',
         };
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
@@ -336,20 +366,21 @@ exports.generateWithAiCredits = onCall(
           body: JSON.stringify({
             model: 'gpt-4o-mini',
             messages: [{ role: 'system', content: prompts[feature] }, { role: 'user', content: input }],
-            ...(feature === 'brand_identity' || feature === 'color_hex' ? { response_format: { type: 'json_object' } } : {}),
+            ...(['brand_identity', 'color_hex', 'listing', 'market_tips'].includes(feature) ? { response_format: { type: 'json_object' } } : {}),
           }),
         });
         const payload = await response.json();
         if (!response.ok || !payload.choices?.[0]?.message?.content) throw new Error(payload.error?.message || 'AI generation failed.');
         output = payload.choices[0].message.content;
+        usage = { inputTokens: payload.usage?.prompt_tokens || 0, outputTokens: payload.usage?.completion_tokens || 0, model: payload.model || 'gpt-4o-mini' };
       }
       await db.runTransaction(async (tx) => {
         const snapshot = await tx.get(job);
         if (snapshot.data()?.state !== 'reserved') throw new Error('Unexpected AI request state.');
-        tx.update(job, { state: 'completed', completedAt: admin.firestore.FieldValue.serverTimestamp() });
-        tx.update(ledger, { status: 'completed' });
+        tx.update(job, { state: 'completed', usage, completedAt: admin.firestore.FieldValue.serverTimestamp() });
+        tx.update(ledger, { status: 'completed', usage });
       });
-      return { output, creditsUsed: cost };
+      return { output, creditsUsed: cost, usage };
     } catch (error) {
       await db.runTransaction(async (tx) => {
         const [jobSnap, walletSnap] = await Promise.all([tx.get(job), tx.get(wallet)]);
@@ -363,3 +394,27 @@ exports.generateWithAiCredits = onCall(
     }
   },
 );
+
+/** Recovery for orphaned reservations. Never re-run a charge or generation. */
+const { onSchedule } = require('firebase-functions/v2/scheduler');
+exports.recoverAiReservations = onSchedule('every 10 minutes', async () => {
+  const now = admin.firestore.Timestamp.now();
+  const expired = await db.collectionGroup('requests')
+    .where('state', '==', 'reserved').where('leaseExpiresAt', '<=', now).limit(100).get();
+  for (const doc of expired.docs) {
+    const wallet = doc.ref.parent.parent;
+    if (!wallet || wallet.parent.id !== 'ai_wallets') continue;
+    const ledger = wallet.collection('ledger').doc(doc.id);
+    await db.runTransaction(async (tx) => {
+      const [jobSnap, walletSnap] = await Promise.all([tx.get(doc.ref), tx.get(wallet)]);
+      if (jobSnap.data()?.state !== 'reserved') return;
+      const cost = Number(jobSnap.data().cost || 0);
+      tx.set(wallet, {
+        balance: Number(walletSnap.data()?.balance || 0) + cost,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+      tx.update(doc.ref, { state: 'refunded', recovered: true, completedAt: admin.firestore.FieldValue.serverTimestamp() });
+      tx.update(ledger, { status: 'refunded', recovered: true });
+    });
+  }
+});
