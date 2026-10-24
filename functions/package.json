@@ -1,7 +1,7 @@
 {
   "name": "brand-next-door-functions",
   "private": true,
-  "main": "index.js",
+  "main": "order_entry.js",
   "engines": {
     "node": "20"
   },
