@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../widgets/ai_disclosure.dart';
@@ -33,6 +34,28 @@ class _AILogoGenerationScreenState extends State<AILogoGenerationScreen> {
     generateLogo();
   }
 
+  String friendlyError(Object error) {
+    if (error is FirebaseFunctionsException) {
+      switch (error.code) {
+        case 'resource-exhausted':
+          if (error.message?.toLowerCase().contains('credit') == true) {
+            return 'You have run out of AI credits. Open AI Credits to check your balance.';
+          }
+          return 'Please wait a moment before generating another logo.';
+        case 'unavailable':
+        case 'deadline-exceeded':
+          return 'Unable to connect. Check your internet connection and try again.';
+        case 'unauthenticated':
+          return 'Your session has expired. Please sign in again.';
+        case 'failed-precondition':
+          return 'Logo generation is temporarily unavailable. Please try again later.';
+        default:
+          return 'We could not generate your logo right now. Please try again.';
+      }
+    }
+    return 'We could not generate your logo. Check your connection and try again.';
+  }
+
   Future<void> generateLogo() async {
     if (isGenerating) return;
     setState(() {
@@ -51,10 +74,8 @@ class _AILogoGenerationScreenState extends State<AILogoGenerationScreen> {
       setState(() => generatedLogo = result);
     } catch (e) {
       if (!mounted) return;
-      setState(() => error = 'We could not generate a logo. Please try again.');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('AI logo generation failed: $e')),
-      );
+      debugPrint('Logo generation failed: $e');
+      setState(() => error = friendlyError(e));
     } finally {
       if (mounted) setState(() => isGenerating = false);
     }
@@ -82,7 +103,7 @@ class _AILogoGenerationScreenState extends State<AILogoGenerationScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not save logo: $e')),
+        const SnackBar(content: Text('Could not save your logo. Check your connection and try again.')),
       );
     } finally {
       if (mounted) setState(() => isSaving = false);
