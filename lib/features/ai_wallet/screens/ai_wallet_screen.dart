@@ -62,6 +62,9 @@ class _AiWalletScreenState extends State<AiWalletScreen> {
           'brand_description': 'Brand description',
           'color_hex': 'Custom color',
           'logo': 'AI logo',
+          'listing': 'AI listing',
+          'market_tips': 'Market tips',
+          'welcome_trial': 'Welcome trial',
         };
         return ListView(padding: const EdgeInsets.all(20), children: [
           Container(
@@ -74,6 +77,8 @@ class _AiWalletScreenState extends State<AiWalletScreen> {
               const Text('Credits are usage units, not OpenAI tokens or cash.', style: TextStyle(color: Colors.white70)),
             ]),
           ),
+          const SizedBox(height: 10),
+          const Text('New accounts receive a one-time 30-credit introductory allowance. Each AI generation deducts the feature cost shown below. Failed generations are refunded.', style: TextStyle(color: Color(0xFF5F6B71), fontSize: 12, height: 1.4)),
           const SizedBox(height: 20),
           const Text('Feature credit costs', style: TextStyle(color: navy, fontSize: 19, fontWeight: FontWeight.w800)),
           const SizedBox(height: 8),
@@ -98,7 +103,7 @@ class _AiWalletScreenState extends State<AiWalletScreen> {
               leading: const Icon(Icons.receipt_long_outlined, color: gold),
               title: Text(labels[item['feature']] ?? (item['feature'] ?? 'AI usage').toString()),
               subtitle: Text(status == 'refunded' ? 'Credits refunded' : status),
-              trailing: Text('${item['delta'] ?? 0}', style: const TextStyle(fontWeight: FontWeight.w700)),
+              trailing: Text('${(item['delta'] as num? ?? 0) > 0 ? '+' : ''}${item['delta'] ?? 0}', style: const TextStyle(fontWeight: FontWeight.w700)),
             );
           }),
           const SizedBox(height: 20),
