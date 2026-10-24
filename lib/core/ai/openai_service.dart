@@ -1,256 +1,27 @@
 import 'dart:convert';
-
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-
-import 'ai_config.dart';
-
+import '../../features/ai_wallet/services/ai_credit_service.dart';
 
 class OpenAIService {
-  Future<Map<String, dynamic>> generateBrand(
-  String businessInfo,
-) async {
-  final response = await http.post(
-    Uri.parse(
-      'https://api.openai.com/v1/chat/completions',
-    ),
-    headers: {
-      'Authorization':
-          'Bearer ${AIConfig.apiKey}',
-      'Content-Type':
-          'application/json',
-    },
-    body: jsonEncode({
-      "model": "gpt-4o-mini",
-      "messages": [
-        {
-          "role": "system",
-          "content":
-              "You are an expert branding consultant. Return ONLY valid JSON."
-        },
-        {
-          "role": "user",
-          "content": """
-Generate a business brand.
+  final AiCreditService _ai = AiCreditService();
 
-Return ONLY JSON in this exact format:
+  Future<Map<String, dynamic>> generateBrand(String businessInfo) =>
+      _ai.generateBrand(businessInfo);
 
-{
-  "brandName":"",
-  "tagline":"",
-  "description":"",
-  "colors":[],
-  "personalityTraits":[],
-  "targetAudience":[],
-  "brandScore":0
-}
+  Future<String> generateBrandName(String description) =>
+      _ai.generateText(feature: 'brand_name', input: description);
 
-Business Description:
+  Future<String> generateTagline(String description) =>
+      _ai.generateText(feature: 'brand_tagline', input: description);
 
-$businessInfo
-"""
-        }
-      ],
-      "response_format": {
-        "type": "json_object"
-      }
-    }),
-  );
+  Future<String> generateDescription(String description) =>
+      _ai.generateText(feature: 'brand_description', input: description);
 
-  debugPrint(
-    "STATUS: ${response.statusCode}",
-  );
-
-  debugPrint(
-    response.body,
-  );
-
-  final data =
-      jsonDecode(response.body);
-
-  if (data['error'] != null) {
-    throw Exception(
-      data['error']['message'],
-    );
-  }
-
-  final content =
-      data['choices'][0]
-          ['message']['content'];
-
-  debugPrint(
-    "PARSED CONTENT:",
-  );
-
-  debugPrint(content);
-
-  return jsonDecode(content);
-}
-Future<String> generateBrandName(
-  String businessDescription,
-) async {
-  final response = await http.post(
-    Uri.parse(
-      'https://api.openai.com/v1/chat/completions',
-    ),
-    headers: {
-      'Authorization':
-          'Bearer ${AIConfig.apiKey}',
-      'Content-Type':
-          'application/json',
-    },
-    body: jsonEncode({
-      "model": "gpt-4o-mini",
-      "messages": [
-        {
-          "role": "system",
-          "content":
-              "Generate only one premium business brand name. Return only the name."
-        },
-        {
-          "role": "user",
-          "content":
-              businessDescription
-        }
-      ]
-    }),
-  );
-
-  final data =
-      jsonDecode(response.body);
-
-  if (data['error'] != null) {
-    throw Exception(
-      data['error']['message'],
-    );
-  }
-
-  return data['choices'][0]
-          ['message']
-      ['content']
-      .toString()
-      .trim();
-}
-Future<String> generateTagline(
-  String businessDescription,
-) async {
-  final response = await http.post(
-    Uri.parse(
-      'https://api.openai.com/v1/chat/completions',
-    ),
-    headers: {
-      'Authorization':
-          'Bearer ${AIConfig.apiKey}',
-      'Content-Type':
-          'application/json',
-    },
-    body: jsonEncode({
-      "model": "gpt-4o-mini",
-      "messages": [
-        {
-          "role": "system",
-          "content":
-              "Generate one professional tagline. Return only the tagline."
-        },
-        {
-          "role": "user",
-          "content":
-              businessDescription
-        }
-      ]
-    }),
-  );
-
-  final data =
-      jsonDecode(response.body);
-
-  if (data['error'] != null) {
-    throw Exception(
-      data['error']['message'],
-    );
-  }
-
-  return data['choices'][0]
-          ['message']
-      ['content']
-      .toString()
-      .trim();
-}
-Future<String> generateDescription(
-  String businessDescription,
-) async {
-  final response = await http.post(
-    Uri.parse(
-      'https://api.openai.com/v1/chat/completions',
-    ),
-    headers: {
-      'Authorization':
-          'Bearer ${AIConfig.apiKey}',
-      'Content-Type':
-          'application/json',
-    },
-    body: jsonEncode({
-      "model": "gpt-4o-mini",
-      "messages": [
-        {
-          "role": "system",
-          "content":
-              "Generate a professional business description."
-        },
-        {
-          "role": "user",
-          "content":
-              businessDescription
-        }
-      ]
-    }),
-  );
-
-  final data =
-      jsonDecode(response.body);
-
-  if (data['error'] != null) {
-    throw Exception(
-      data['error']['message'],
-    );
-  }
-
-  return data['choices'][0]
-          ['message']
-      ['content']
-      .toString()
-      .trim();
-}
-  Future<String> resolveColorHex(String colorName) async {
-    final response = await http.post(
-      Uri.parse('https://api.openai.com/v1/chat/completions'),
-      headers: {
-        'Authorization': 'Bearer ${AIConfig.apiKey}',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'model': 'gpt-4o-mini',
-        'messages': [
-          {
-            'role': 'system',
-            'content': 'Convert a human color name or description into one representative RGB hex color. Return ONLY JSON like {"hex":"#AABBCC"}.'
-          },
-          {'role': 'user', 'content': colorName}
-        ],
-        'response_format': {'type': 'json_object'}
-      }),
-    );
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    if (data['error'] != null) {
-      throw Exception((data['error'] as Map)['message']);
-    }
-    final content = data['choices'][0]['message']['content'].toString();
-    final parsed = jsonDecode(content) as Map<String, dynamic>;
-    final hex = (parsed['hex'] ?? '').toString().trim().toUpperCase();
+  Future<String> resolveColorHex(String name) async {
+    final text = await _ai.generateText(feature: 'color_hex', input: name);
+    final hex = (jsonDecode(text) as Map<String, dynamic>)['hex'].toString().toUpperCase();
     if (!RegExp(r'^#[0-9A-F]{6}$').hasMatch(hex)) {
-      throw Exception('AI returned an invalid color.');
+      throw const FormatException('Invalid color returned by AI');
     }
     return hex;
   }
-
 }
