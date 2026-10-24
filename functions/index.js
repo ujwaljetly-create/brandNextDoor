@@ -400,7 +400,7 @@ const { onSchedule } = require('firebase-functions/v2/scheduler');
 exports.recoverAiReservations = onSchedule('every 10 minutes', async () => {
   const now = admin.firestore.Timestamp.now();
   const expired = await db.collectionGroup('requests')
-    .where('state', '==', 'reserved').where('leaseExpiresAt', '<=', now).limit(100).get();
+    .where('leaseExpiresAt', '<=', now).limit(100).get();
   for (const doc of expired.docs) {
     const wallet = doc.ref.parent.parent;
     if (!wallet || wallet.parent.id !== 'ai_wallets') continue;
