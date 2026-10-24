@@ -8,7 +8,7 @@ service cloud.firestore {
     function owner(field) { return signedIn() && resource.data[field] == request.auth.uid; }
     function newOwner(field) { return signedIn() && request.resource.data[field] == request.auth.uid; }
     function unchanged(fields) { return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields); }
-    function chatMember() { return signedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants; }
+    function chatMember(chatId) { return signedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants; }
 
     match /ai_wallets/{uid} {
       allow read, write: if false;
@@ -64,12 +64,12 @@ service cloud.firestore {
       allow delete: if false;
 
       match /messages/{messageId} {
-        allow read: if chatMember();
-        allow create: if chatMember()
+        allow read: if chatMember(chatId);
+        allow create: if chatMember(chatId)
           && request.resource.data.senderId == request.auth.uid
           && request.resource.data.chatId == chatId
           && request.resource.data.receiverId in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
-        allow update: if chatMember() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead'])
+        allow update: if chatMember(chatId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead'])
           && request.auth.uid == resource.data.receiverId
           && request.resource.data.isRead == true;
         allow delete: if false;
