@@ -16,107 +16,97 @@ class BuyNowSection extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           border: Border(
-            top: BorderSide(
-              color: Colors.grey.shade300,
-            ),
+            top: BorderSide(color: Colors.grey.shade300),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 12,
               offset: const Offset(0, -2),
             ),
           ],
         ),
-        child: Row(
-          children: [
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 350;
 
-            Expanded(
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                mainAxisSize:
-                    MainAxisSize.min,
-                children: [
-
-                  const Text(
-                    'Price',
-                    style: TextStyle(
-                      color: Colors.grey,
-                    ),
-                  ),
-
-                  const SizedBox(
-                    height: 4,
-                  ),
-
-                  Text(
-                    '\$${listing.price.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontSize: 26,
-                      fontWeight:
-                          FontWeight.bold,
-                      color: Colors.green,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(
-              width: 12,
-            ),
-
-            Expanded(
-              flex: 2,
-              child: SizedBox(
-                height: 55,
-                child: ElevatedButton.icon(
-                  icon: const Icon(
-                    Icons.shopping_cart,
-                  ),
-                  label: const Text(
-                    'Buy Now',
-                  ),
-                  onPressed: () {
-                    context.push(
-                      '/place-order',
-                      extra: listing,
-                    );
-                  },
+            final price = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Price',
+                  style: TextStyle(color: Colors.grey),
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  '\$${listing.currentPrice.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
+              ],
+            );
+
+            final buyButton = SizedBox(
+              height: 52,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.shopping_cart),
+                label: const Text('Buy Now'),
+                onPressed: () {
+                  context.push('/place-order', extra: listing);
+                },
               ),
-            ),
+            );
 
-            const SizedBox(
-              width: 12,
-            ),
-
-            SizedBox(
-              height: 55,
-              width: 55,
+            final chatButton = SizedBox(
+              height: 52,
+              width: 52,
               child: OutlinedButton(
                 onPressed: () {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(
+                  ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text(
-                        'Chat feature coming soon.',
-                      ),
+                      content: Text('Chat feature coming soon.'),
                     ),
                   );
                 },
-                child: const Icon(
-                  Icons.chat_bubble_outline,
-                ),
+                child: const Icon(Icons.chat_bubble_outline),
               ),
-            ),
-          ],
+            );
+
+            if (compact) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  price,
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(child: buyButton),
+                      const SizedBox(width: 10),
+                      chatButton,
+                    ],
+                  ),
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(child: price),
+                const SizedBox(width: 12),
+                Expanded(flex: 2, child: buyButton),
+                const SizedBox(width: 12),
+                chatButton,
+              ],
+            );
+          },
         ),
       ),
     );

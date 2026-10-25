@@ -18,58 +18,48 @@ class WelcomeScreen extends StatelessWidget {
           child: Column(
             children: [
               const Spacer(),
-
               const BrandLogo(size: 140),
-
               const SizedBox(height: 24),
-
               const Text(
-                "Brand Next Door",
+                'Brand Next Door',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.text,
                   fontSize: 34,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
               const SizedBox(height: 20),
-
               const Text(
-                "Create Your Brand.\nSell Locally.\nGrow Everywhere.",
+                'Create Your Brand.\nSell Locally.\nGrow Everywhere.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: AppColors.grey,
                   fontSize: 18,
                 ),
               ),
-
               const Spacer(),
-
               GradientButton(
-                text: "Get Started",
+                text: 'Get Started',
                 onTap: () {
-                  context.go('/account-type');
+                  context.push('/account-type');
                 },
               ),
-
               const SizedBox(height: 16),
-
-              OutlinedButton(
+              OutlinedButton.icon(
                 onPressed: () {
-                  context.go('/login');
+                  context.push('/login?role=buyer');
                 },
-                child: const Text("Continue as Buyer"),
+                icon: const Icon(Icons.shopping_bag_outlined),
+                label: const Text('Continue as Buyer'),
               ),
-
               const SizedBox(height: 12),
-
-              OutlinedButton(
+              OutlinedButton.icon(
                 onPressed: () {
-                  context.go('/login');
+                  context.push('/login?role=seller');
                 },
-                child: const Text("Continue as a Seller"),
+                icon: const Icon(Icons.storefront_outlined),
+                label: const Text('Continue as Seller'),
               ),
-
               const SizedBox(height: 40),
             ],
           ),

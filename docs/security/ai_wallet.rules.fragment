@@ -1,0 +1,11 @@
+// Merge into the project's EXISTING deployed Firestore rules.
+// DO NOT deploy this fragment as a standalone ruleset.
+// Place these match blocks within match /databases/{database}/documents.
+// More specific match blocks do not override broader ALLOW rules.
+// Audit any existing recursive wildcard grants before deployment.
+match /ai_wallets/{userId} {
+  allow read, write: if false;
+  match /{nested=**} {
+    allow read, write: if false;
+  }
+}
