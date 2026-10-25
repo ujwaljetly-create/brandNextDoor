@@ -11,6 +11,7 @@ import '../../orders/services/order_service.dart';
 import '../../orders/widgets/order_card.dart';
 import '../../../widgets/ai_disclosure.dart';
 import '../services/market_tips_service.dart';
+import '../../social/screens/social_studio_screen.dart';
 import '../widgets/dashboard_stat_card.dart';
 import '../widgets/sales_trend_card.dart';
 
@@ -96,6 +97,19 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                   DashboardStatCard(title: 'Store', value: brandExists ? 'Live' : 'Setup', icon: Icons.storefront_outlined, onTap: () => context.push(brandExists ? '/seller-brand' : '/seller-onboarding')),
                 ]),
                 const SizedBox(height: 24),
+                Card(
+                  color: Colors.white,
+                  child: ListTile(
+                    leading: const Icon(Icons.campaign_outlined, color: _gold),
+                    title: const Text('AI Social Studio', style: TextStyle(fontWeight: FontWeight.w800)),
+                    subtitle: const Text('Prepare social posts and connect Facebook or Instagram when available.'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                      builder: (_) => const SocialStudioScreen(),
+                    )),
+                  ),
+                ),
+                const SizedBox(height: 14),
                 SalesTrendCard(values: _last10DaysSales(orders)),
                 const SizedBox(height: 18),
                 _marketTips(user.uid, listings),
